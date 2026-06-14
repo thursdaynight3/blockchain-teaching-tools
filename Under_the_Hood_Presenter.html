@@ -1,0 +1,1701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Technical Foundations - Terminal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;600;700&family=VT323&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* 1. TERMINAL SETUP */
+        * { box-sizing: border-box; }
+        
+        body {
+            background-color: #050505;
+            display: grid;
+            gap: 40px;
+            grid-template-columns: 1fr;
+            margin: 0;
+            min-height: 100vh;
+            padding: 40px 0;
+            place-items: center;
+        }
+
+        .slide-container {
+            align-items: center;
+            background-color: #0a0a0a;
+            border-radius: 4px;
+            border: 1px solid #333;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.05), inset 0 0 10px rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            font-family: 'Fira Code', monospace;
+            height: 720px;
+            justify-content: center;
+            overflow: hidden;
+            padding: 60px;
+            position: relative;
+            width: 1280px;
+        }
+
+        .slide-container::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        /* 2. TYPOGRAPHY & TERMINAL COLORS */
+        .slide-container h1, .slide-container h2, .slide-container h3, .slide-container .slide-title {
+            margin: 0;
+            font-weight: 600;
+        }
+
+        .slide-container h1 { 
+            font-size: 70px; 
+            color: #00ff41;
+            text-shadow: 0 0 5px rgba(0, 255, 65, 0.4);
+            margin-bottom: 20px; 
+            font-family: 'VT323', monospace;
+            letter-spacing: 2px;
+        }
+
+        .slide-container .slide-title { 
+            font-size: 40px; 
+            color: #00ff41;
+            margin-bottom: 40px; 
+            width: 100%; 
+            text-align: left;
+            border-bottom: 1px solid #333;
+            padding-bottom: 15px;
+        }
+        
+        .slide-container .slide-title::before {
+            content: "root@investigator:~# ";
+            color: #888;
+            font-size: 30px;
+        }
+
+        .slide-container h3 { font-size: 28px; color: #e5e7eb; margin-bottom: 15px; }
+
+        .slide-container p, .slide-container li, .slide-container .subtitle {
+            font-size: 22px;
+            line-height: 1.6;
+            color: #a3a3a3;
+            font-weight: 300;
+        }
+
+        .highlight { color: #00ff41; font-weight: 600; }
+        .warning { color: #ff3333; }
+        .muted { color: #555; }
+
+        /* 3. LAYOUT SPECIFICS */
+        .content-area {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            justify-content: center;
+            width: 100%;
+            z-index: 3;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            width: 100%;
+            align-items: center;
+        }
+
+        .section-title-layout { 
+            text-align: left; 
+            width: 100%;
+            padding: 40px;
+            border: 1px solid #333;
+            background: rgba(0,0,0,0.5);
+        }
+        
+        .cursor {
+            display: inline-block;
+            width: 20px;
+            height: 50px;
+            background-color: #00ff41;
+            animation: blink 1s step-end infinite;
+            vertical-align: bottom;
+            margin-left: 5px;
+        }
+
+        @keyframes blink { 50% { opacity: 0; } }
+
+        .tiled-content { display: flex; gap: 20px; width: 100%; flex-wrap: wrap; }
+        .tile {
+            flex: 1;
+            min-width: 250px;
+            padding: 25px;
+            border: 1px solid #333;
+            background: #0d0d0d;
+        }
+        .tile .icon { font-size: 36px; margin-bottom: 20px; color: #555; }
+        .tile h3::before { content: "> "; color: #00ff41; }
+
+        .sys-stats {
+            position: absolute;
+            top: 20px; right: 20px;
+            font-size: 14px; color: #555; text-align: right; z-index: 3;
+        }
+        .slide-number {
+            position: absolute;
+            bottom: 20px; right: 20px;
+            font-size: 16px; color: #555; z-index: 3;
+        }
+
+        /* ASCII Art Boxes */
+        .ascii-box {
+            background: #000;
+            border: 1px solid #333;
+            padding: 30px;
+            color: #00ff41;
+            white-space: pre;
+            text-align: center;
+            font-size: 18px;
+            line-height: 1.2;
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.05);
+        }
+
+        ul.terminal-list { list-style-type: none; padding: 0; }
+        ul.terminal-list li { margin-bottom: 15px; position: relative; padding-left: 25px;}
+        ul.terminal-list li::before { content: ">"; position: absolute; left: 0; color: #00ff41; }
+
+        /* ============================================================
+           PRESENTER MODE
+           ============================================================ */
+
+        /* When body is in present mode: hide everything, show one slide
+           at a time, scaled to fill the viewport. */
+        body.present {
+            display: block;
+            padding: 0;
+            margin: 0;
+            gap: 0;
+            background-color: #000;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        body.present .slide-container {
+            display: none;            /* hide all by default */
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            margin: 0;
+            /* center, then scale to fit via JS-set --scale */
+            transform: translate(-50%, -50%) scale(var(--scale, 1));
+            transform-origin: center center;
+        }
+
+        body.present .slide-container.active {
+            display: flex;            /* show only the active slide */
+        }
+
+        /* Progress bar across the top during presentation */
+        #progress-bar {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: #00ff41;
+            box-shadow: 0 0 8px rgba(0, 255, 65, 0.6);
+            z-index: 9999;
+            transition: width 0.2s ease;
+            width: 0;
+        }
+        body.present #progress-bar { display: block; }
+
+        /* Slide counter (current / total) bottom-left in present mode */
+        #present-counter {
+            display: none;
+            position: fixed;
+            bottom: 18px;
+            left: 22px;
+            font-family: 'Fira Code', monospace;
+            font-size: 16px;
+            color: #00ff41;
+            opacity: 0.55;
+            z-index: 9999;
+            user-select: none;
+        }
+        body.present #present-counter { display: block; }
+
+        /* Help / hint button — always visible, bottom-right */
+        #present-toggle {
+            position: fixed;
+            bottom: 18px;
+            right: 22px;
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+            color: #00ff41;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid #00ff41;
+            border-radius: 3px;
+            padding: 8px 14px;
+            cursor: pointer;
+            z-index: 10000;
+            opacity: 0.5;
+            transition: opacity 0.2s ease;
+            user-select: none;
+        }
+        #present-toggle:hover { opacity: 1; }
+
+        /* Help overlay listing keyboard controls */
+        #help-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.92);
+            z-index: 10001;
+            color: #a3a3a3;
+            font-family: 'Fira Code', monospace;
+            padding: 60px;
+            box-sizing: border-box;
+        }
+        #help-overlay.show { display: block; }
+        #help-overlay h2 {
+            color: #00ff41;
+            font-size: 32px;
+            margin: 0 0 30px 0;
+            font-family: 'VT323', monospace;
+        }
+        #help-overlay .key {
+            color: #00ff41;
+            display: inline-block;
+            min-width: 180px;
+        }
+        #help-overlay table { border-collapse: collapse; font-size: 20px; line-height: 2.2; }
+        #help-overlay .close-hint { margin-top: 40px; color: #555; font-size: 16px; }
+
+        /* Jump-to-slide input */
+        #jump-input {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: #000;
+            border: 2px solid #00ff41;
+            color: #00ff41;
+            font-family: 'VT323', monospace;
+            font-size: 48px;
+            text-align: center;
+            padding: 20px 30px;
+            width: 240px;
+            z-index: 10002;
+            display: none;
+            outline: none;
+        }
+        #jump-input.show { display: block; }
+        #jump-input::placeholder { color: #1a5a2a; }
+
+    </style>
+</head>
+<body>
+
+    <div class="slide-container" id="slide1">
+        <div class="sys-stats">UPTIME: 94:12:03<br>MEM: 16GB / 64GB<br>NET: SECURE</div>
+        <div class="content-area">
+            <div class="section-title-layout">
+                <p class="muted" style="margin-bottom: 10px;">[user@sys ~]$ ./run_module.sh --target="under_the_hood"</p>
+                <h1>Under the Hood:<br>Keys, Signatures, Transactions<span class="cursor"></span></h1>
+                <p class="subtitle" style="color: #e5e7eb;">Bitcoin + Ethereum technical foundations</p>
+                <div style="margin-top: 40px; border-top: 1px dashed #333; padding-top: 20px;">
+                    <p style="color: #888;"><span class="warning">Goal:</span> understand the machinery well enough to read technical material, not just investigator-friendly summaries.</p>
+                    <p class="muted" style="font-size: 16px; margin-top: 10px;">technical notebook module · optional Day 1 insert</p>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">01</div>
+    </div>
+
+    <div class="slide-container" id="slide2">
+        <h2 class="slide-title">module_map.txt</h2>
+        <div class="content-area">
+            <p style="margin-bottom: 30px;">Same words, different mental model: <span class="highlight">Bitcoin is output-based.</span> <span class="highlight">Ethereum is account/state-based.</span></p>
+            <div class="tiled-content">
+                <div class="tile">
+                    <div class="icon"><i class="fa-solid fa-microchip"></i></div>
+                    <h3>1. Crypto primitives</h3>
+                    <p>hashes<br>keys<br>signatures<br>addresses</p>
+                </div>
+                <div class="tile">
+                    <div class="icon"><i class="fa-brands fa-bitcoin"></i></div>
+                    <h3>2. Bitcoin</h3>
+                    <p>wallets<br>network<br>outputs<br>UTXOs</p>
+                </div>
+                <div class="tile">
+                    <div class="icon"><i class="fa-brands fa-ethereum"></i></div>
+                    <h3>3. Ethereum</h3>
+                    <p>accounts<br>gas<br>contracts<br>token events</p>
+                </div>
+                <div class="tile">
+                    <div class="icon"><i class="fa-solid fa-magnifying-glass-chart"></i></div>
+                    <h3>4. Recap</h3>
+                    <p>compare models<br>common mistakes<br>explorer habits</p>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">02</div>
+    </div>
+
+    <div class="slide-container" id="slide3">
+        <div class="content-area">
+            <div class="section-title-layout">
+                <p class="muted" style="margin-bottom: 10px;">[user@sys ~]$ ./load_part_1.sh</p>
+                <h1>Part I:<br>Cryptographic Primitives<span class="cursor"></span></h1>
+                <p class="subtitle" style="color: #e5e7eb;">The "crypto" in cryptocurrency: hashes, keys, signatures, and addresses.</p>
+            </div>
+        </div>
+        <div class="slide-number">03</div>
+    </div>
+
+    <div class="slide-container" id="slide4">
+        <h2 class="slide-title">why_crypto.md</h2>
+        <div class="content-area">
+            <p class="warning" style="font-size: 28px; margin-bottom: 30px;">> No central accountant. So the data has to prove itself.</p>
+            <ul class="terminal-list">
+                <li><span class="highlight">hashes</span> make data tamper-evident</li>
+                <li><span class="highlight">signatures</span> prove authorization</li>
+                <li><span class="highlight">nodes</span> verify the rules independently</li>
+            </ul>
+            <div style="margin-top: 40px; padding: 30px; border: 1px dashed #333; background: rgba(0,255,65,0.05); text-align: center;">
+                <p style="color: #e5e7eb; margin-bottom: 15px;">A blockchain record should be:</p>
+                <p style="font-family: 'VT323'; font-size: 32px; color: #00ff41;">[ easy to verify ] | [ hard to forge ] | [ hard to rewrite quietly ]</p>
+            </div>
+            <p style="margin-top: 30px; color: #888;">The system replaces “trust the institution” with “verify the data.”</p>
+        </div>
+        <div class="slide-number">04</div>
+    </div>
+
+    <div class="slide-container" id="slide5">
+        <h2 class="slide-title">hash_functions.exe</h2>
+        <div class="content-area two-column">
+            <div>
+                <ul class="terminal-list">
+                    <li>same input → same hash</li>
+                    <li>tiny input change → totally different hash</li>
+                    <li>hard to reverse</li>
+                    <li>fixed-size output</li>
+                </ul>
+                <p style="margin-top: 40px; border-left: 3px solid #00ff41; padding-left: 15px; color: #e5e7eb;">
+                    A hash is a fingerprint, not encryption. It identifies data; it does not hide data.
+                </p>
+            </div>
+            <div class="ascii-box">
+[ INPUT DATA ]
+   "hello"
+      |
+      V
++-----------+
+|   HASH    |
+| FUNCTION  |
++-----------+
+      |
+      V
+[ OUTPUT HASH ]
+2cf24dba5fb0...
+            </div>
+        </div>
+        <div class="slide-number">05</div>
+    </div>
+
+    <div class="slide-container" id="slide6">
+        <h2 class="slide-title">find_hashes.sh</h2>
+        <div class="content-area">
+            <div class="tiled-content">
+                <div class="tile">
+                    <h3>Transaction ID</h3>
+                    <p>A hash of the transaction data itself.</p>
+                </div>
+                <div class="tile">
+                    <h3>Block Hash</h3>
+                    <p>A hash of the entire block header.</p>
+                </div>
+                <div class="tile">
+                    <h3>Merkle Root</h3>
+                    <p>One fingerprint representing all transactions in a block.</p>
+                </div>
+            </div>
+            <p style="margin-top: 40px; text-align: center; color: #888;">
+                Hashes let the network detect when transaction or block data has been changed.
+            </p>
+        </div>
+        <div class="slide-number">06</div>
+    </div>
+
+    <div class="slide-container" id="slide7">
+        <h2 class="slide-title">merkle_tree.log</h2>
+        <div class="content-area">
+            <p style="text-align: center; margin-bottom: 20px;">One hash for many transactions.</p>
+            <div class="ascii-box" style="font-size: 22px;">
+                 [ Merkle Root ]
+                  /           \
+                 /             \
+             [ hAB ]         [ hCD ]
+             /     \         /     \
+            /       \       /       \
+        [ hA ]   [ hB ]  [ hC ]   [ hD ]
+          |        |       |        |
+       [TX A]   [TX B]  [TX C]   [TX D]
+            </div>
+            <p style="margin-top: 20px; text-align: center; color: #888;">
+                A Merkle root commits to every transaction in the block without listing them all in the header.
+            </p>
+        </div>
+        <div class="slide-number">07</div>
+    </div>
+
+    <div class="slide-container" id="slide8">
+        <h2 class="slide-title">generate_keys.py</h2>
+        <div class="content-area two-column">
+            <div class="ascii-box">
+[ PRIVATE KEY ]
+   (secret)
+      |
+      V
++-----------+
+| ELLIPTIC  |
+| CURVE     |
+| MATH      |
++-----------+
+      |
+      V
+[ PUBLIC KEY ]
+ (shareable)
+            </div>
+            <div>
+                <ul class="terminal-list">
+                    <li><span class="highlight">Easy direction:</span> private → public.</li>
+                    <li><span class="warning">Hard direction:</span> public → private.</li>
+                </ul>
+                <p style="margin-top: 30px;">The private key is a massive random number. The public key is derived from it using one-way cryptography.</p>
+            </div>
+        </div>
+        <div class="slide-number">08</div>
+    </div>
+
+    <div class="slide-container" id="slide9">
+        <h2 class="slide-title">sign_tx.exe</h2>
+        <div class="content-area two-column">
+            <div>
+                <p style="color: #e5e7eb; margin-bottom: 20px;">Authorization without revealing the key.</p>
+                <p>The signature proves the private key authorized this transaction. The private key itself is never revealed on the network.</p>
+            </div>
+            <div class="ascii-box">
+[ TX MESSAGE ] + [ PRIVATE KEY ]
+      \               /
+       \             /
+        \           /
+       +-------------+
+       |   [SIGN]    |
+       +-------------+
+              |
+              V
+        [ SIGNATURE ]
+            </div>
+        </div>
+        <div class="slide-number">09</div>
+    </div>
+
+    <div class="slide-container" id="slide10">
+        <h2 class="slide-title">verify_sig.exe</h2>
+        <div class="content-area two-column">
+            <div class="ascii-box">
+[ TX MESSAGE ] + [ SIGNATURE ] + [ PUBLIC KEY ]
+      \                |               /
+       \               |              /
+        \              |             /
+         +-------------------------+
+         |        [VERIFY]         |
+         +-------------------------+
+                       |
+                       V
+              [ VALID / INVALID ]
+            </div>
+            <div>
+                <p style="color: #e5e7eb; margin-bottom: 20px;">Anyone can check the signature.</p>
+                <ul class="terminal-list">
+                    <li>Signing requires the <span class="highlight">private key</span>.</li>
+                    <li>Verification only needs the <span class="highlight">public key</span>.</li>
+                </ul>
+            </div>
+        </div>
+        <div class="slide-number">10</div>
+    </div>
+
+    <div class="slide-container" id="slide11">
+        <h2 class="slide-title">encode_address.sh</h2>
+        <div class="content-area two-column">
+            <div>
+                <p style="color: #e5e7eb; margin-bottom: 20px;">Destinations, not identities.</p>
+                <ul class="terminal-list">
+                    <li>An address is a shareable way to receive value.</li>
+                    <li>It is <span class="warning">not</span> a name.</li>
+                    <li>It is <span class="warning">not</span> proof of identity.</li>
+                </ul>
+            </div>
+            <div class="ascii-box">
+[ PUBLIC KEY / SCRIPT ]
+          |
+          V
++-------------------+
+| Hash + Encoding   |
+| + Checksum        |
++-------------------+
+          |
+          V
+    bc1q...7f3
+   (The Address)
+            </div>
+        </div>
+        <div class="slide-number">11</div>
+    </div>
+
+    <div class="slide-container" id="slide12">
+        <h2 class="slide-title">derive_hd_wallet.py</h2>
+        <div class="content-area">
+            <div class="ascii-box" style="padding: 20px;">
+           [ SEED PHRASE ]
+          (12/18/24 words)
+                 |
+           (derive keys)
+                 |
+   +---------+---+---+---------+
+   |         |       |         |
+[Addr 1]  [Addr 2] [Change] [Addr n]
+            </div>
+            <div class="two-column" style="margin-top: 40px; gap: 20px;">
+                <div>
+                    <p><span class="highlight">HD</span> = Hierarchical Deterministic.</p>
+                    <p>One seed can generate many keys and addresses.</p>
+                </div>
+                <div>
+                    <p style="color: #e5e7eb; border-left: 1px solid #333; padding-left: 20px;">
+                        This is why wallets can generate fresh change addresses without requiring a new backup every time.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">12</div>
+    </div>
+
+    <div class="slide-container" id="slide13">
+        <h2 class="slide-title">control_model_recap.txt</h2>
+        <div class="content-area">
+            <p style="margin-bottom: 30px; text-align: center;">If you understand this control model, Bitcoin and Ethereum become much easier to read.</p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="tile" style="background: rgba(0,255,65,0.05); border-color: #00ff41;">
+                    <h3>Private Key</h3>
+                    <p>The secret. It can <span class="highlight">sign</span> transactions.</p>
+                </div>
+                <div class="tile">
+                    <h3>Signature</h3>
+                    <p>The mathematical proof that <span class="highlight">authorizes</span> a specific transaction.</p>
+                </div>
+                <div class="tile">
+                    <h3>Public Key</h3>
+                    <p>The visible key that the network uses to <span class="highlight">verify</span> the signature.</p>
+                </div>
+                <div class="tile">
+                    <h3>Address</h3>
+                    <p>A hashed version of the public key where value is <span class="highlight">locked / received</span>.</p>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">13</div>
+    </div>
+
+<div class="slide-container" id="slide14">
+        <div class="sys-stats">UPTIME: 94:15:22<br>MEM: 18GB / 64GB<br>NET: SECURE</div>
+        <div class="content-area">
+            <div class="section-title-layout">
+                <p class="muted" style="margin-bottom: 10px;">[user@sys ~]$ ./load_part_2.sh</p>
+                <h1>Part II:<br>Bitcoin Under the Hood<span class="cursor"></span></h1>
+                <p class="subtitle" style="color: #e5e7eb;">Outputs, UTXOs, inputs, fees, change, and signatures.</p>
+            </div>
+        </div>
+        <div class="slide-number">14</div>
+    </div>
+
+    <div class="slide-container" id="slide15">
+        <h2 class="slide-title">view_models.cfg</h2>
+        <div class="content-area two-column">
+            <div class="tile" style="border-color: #555;">
+                <h3 style="color: #a3a3a3;">User View (GUI)</h3>
+                <ul class="terminal-list" style="color: #888;">
+                    <li>I have a wallet balance.</li>
+                    <li>I send 0.10 BTC to Bob.</li>
+                    <li>The wallet shows a new balance.</li>
+                </ul>
+            </div>
+            <div class="tile" style="border-color: #00ff41;">
+                <h3 style="color: #00ff41;">Technical View (CLI)</h3>
+                <ul class="terminal-list">
+                    <li>Wallet selects UTXOs.</li>
+                    <li>Transaction consumes inputs.</li>
+                    <li>Transaction creates new outputs.</li>
+                    <li>Signature proves authorization.</li>
+                </ul>
+            </div>
+        </div>
+        <p style="margin-top: 40px; border-left: 3px solid #00ff41; padding-left: 15px; color: #e5e7eb; font-size: 22px;">
+            The explorer may make Bitcoin look account-based. <span class="highlight">Under the hood, it is output-based.</span>
+        </p>
+        <div class="slide-number">15</div>
+    </div>
+
+    <div class="slide-container" id="slide16">
+        <h2 class="slide-title">wallet_functions.bin</h2>
+        <div class="content-area two-column">
+            <div>
+                <h3><span class="highlight">[ DOES ]</span></h3>
+                <ul class="terminal-list">
+                    <li>Stores/derives keys</li>
+                    <li>Finds spendable UTXOs</li>
+                    <li>Builds transactions</li>
+                    <li>Signs transactions</li>
+                </ul>
+            </div>
+            <div>
+                <h3><span class="warning">[ DOES NOT ]</span></h3>
+                <ul class="terminal-list" style="color: #888;">
+                    <li>Store bitcoin inside the app</li>
+                    <li>Create value</li>
+                    <li>Identify the user</li>
+                </ul>
+            </div>
+        </div>
+        <div class="ascii-box" style="margin-top: 40px;">
+> The bitcoin is in outputs on the blockchain.
+> The wallet controls keys that can spend those outputs.
+        </div>
+        <div class="slide-number">16</div>
+    </div>
+
+    <div class="slide-container" id="slide17">
+        <h2 class="slide-title">exchange_architecture.md</h2>
+        <div class="content-area">
+            <div class="tiled-content">
+                <div class="tile">
+                    <h3>Exchange User</h3>
+                    <p class="muted">Sees an account balance<br>Logs in with email/2FA<br><span class="warning">Does not control keys</span></p>
+                </div>
+                <div class="tile">
+                    <h3>Exchange Ledger</h3>
+                    <p class="muted">Internal database<br>Credits/debits customers<br>May batch withdrawals</p>
+                </div>
+                <div class="tile" style="border-color: #00ff41;">
+                    <h3 style="color: #00ff41;">On-Chain Wallet</h3>
+                    <p>Exchange controls keys<br>Hot/cold wallets<br>Deposit addresses</p>
+                </div>
+            </div>
+            <p style="margin-top: 40px; text-align: center; color: #e5e7eb; font-size: 24px;">
+                Custodial balance <span class="warning">!=</span> personal on-chain wallet.
+            </p>
+        </div>
+        <div class="slide-number">17</div>
+    </div>
+
+    <div class="slide-container" id="slide18">
+        <h2 class="slide-title">execute_send.sh</h2>
+        <div class="content-area">
+            <p style="color: #e5e7eb; margin-bottom: 30px;">What the wallet actually does when you click "Send":</p>
+            <div class="ascii-box" style="font-size: 20px;">
+[1. SELECT UTXOs] ---> [2. BUILD TX] ---> [3. SIGN INPUTS]
+                                                 |
+                                                 V
+[5. CONFIRM IN BLOCK] <--- [4. BROADCAST TO NETWORK]
+            </div>
+            <p style="margin-top: 40px; color: #888; text-align: center;">
+                The send button hides output selection, change creation, signing, broadcast, and confirmation.
+            </p>
+        </div>
+        <div class="slide-number">18</div>
+    </div>
+
+    <div class="slide-container" id="slide19">
+        <h2 class="slide-title">network_relay.log</h2>
+        <div class="content-area two-column">
+            <div>
+                <p style="color: #e5e7eb;">Broadcast and Relay</p>
+                <p style="margin-top: 20px;">A transaction enters one node, then propagates across the peer-to-peer network via gossip protocol.</p>
+            </div>
+            <div class="ascii-box">
+  [Wallet TX]
+       |
+       V
+   (Node 1) ---> (Node 2)
+      |    \        |
+      V     \       V
+  (Node 3)   +-> (Node 4)
+      |             |
+      V             V
+  (Node 5) <--- (Node 6)
+            </div>
+        </div>
+        <div class="slide-number">19</div>
+    </div>
+
+    <div class="slide-container" id="slide20">
+        <h2 class="slide-title">node_consensus.exe</h2>
+        <div class="content-area two-column">
+            <div class="tile" style="border-color: #00ff41;">
+                <h3 style="color: #00ff41;">A node checks:</h3>
+                <ul class="terminal-list">
+                    <li>Inputs refer to unspent outputs</li>
+                    <li>Signatures are valid</li>
+                    <li>Transaction follows consensus rules</li>
+                    <li>No double spend</li>
+                </ul>
+            </div>
+            <div class="tile" style="border-color: #ff3333;">
+                <h3 style="color: #ff3333;">A node rejects:</h3>
+                <ul class="terminal-list" style="color: #888;">
+                    <li>Overspending</li>
+                    <li>Invalid signatures</li>
+                    <li>Spent outputs</li>
+                    <li>Malformed transactions</li>
+                </ul>
+            </div>
+        </div>
+        <p style="margin-top: 40px; text-align: center; color: #e5e7eb; font-size: 24px;">
+            Nodes do not ask who you are. They ask whether the transaction is <span class="highlight">valid</span>.
+        </p>
+        <div class="slide-number">20</div>
+    </div>
+
+    <div class="slide-container" id="slide21">
+        <h2 class="slide-title">block_assembly.py</h2>
+        <div class="content-area">
+            <div class="ascii-box" style="padding: 40px;">
+[ MEMPOOL ]                [ MINER ]               [ BLOCKCHAIN ]
+(Pending TXs)  ========> (Builds Block) =======> (Adds to Chain)
+            </div>
+            <p style="margin-top: 40px; color: #888; text-align: center;">
+                A confirmation means the transaction is included in a block.<br>More blocks on top = harder to reorganize.
+            </p>
+        </div>
+        <div class="slide-number">21</div>
+    </div>
+
+    <div class="slide-container" id="slide22">
+        <h2 class="slide-title">tx_outputs.json</h2>
+        <div class="content-area two-column">
+            <div>
+                <p style="font-size: 28px; color: #e5e7eb; margin-bottom: 20px;">Locked chunks of value.</p>
+                <ul class="terminal-list">
+                    <li>Bitcoin value lives in outputs.</li>
+                    <li>An address is the lock placed on an output.</li>
+                </ul>
+            </div>
+            <div class="ascii-box" style="text-align: left;">
+{
+  "Output": {
+    "amount": "0.50 BTC",
+    "lock_script": "prove you have the 
+                    right private key"
+  }
+}
+            </div>
+        </div>
+        <div class="slide-number">22</div>
+    </div>
+
+    <div class="slide-container" id="slide23">
+        <h2 class="slide-title">utxo_set.db</h2>
+        <div class="content-area two-column">
+            <div class="ascii-box">
+[ TX 1 ]
+   |-- (spent)
+   |
+   +-- [ UTXO A: 0.30 BTC ]
+
+[ TX 2 ]
+   |-- [ UTXO B: 0.70 BTC ]
+   |
+   +-- [ UTXO C: 0.15 BTC ]
+            </div>
+            <div>
+                <p style="color: #e5e7eb; margin-bottom: 20px;">The spendable tips of the graph.</p>
+                <p>A UTXO (Unspent Transaction Output) is simply an output that has not been spent yet.</p>
+            </div>
+        </div>
+        <div class="slide-number">23</div>
+    </div>
+
+    <div class="slide-container" id="slide24">
+        <h2 class="slide-title">tx_inputs.json</h2>
+        <div class="content-area two-column">
+            <div>
+                <p style="color: #e5e7eb; margin-bottom: 20px;">Inputs point backward.</p>
+                <p>An input does not contain coins. It points to a previous output and unlocks it.</p>
+            </div>
+            <div class="ascii-box">
+[ PRIOR TX OUTPUT ]
+   (0.80 BTC)
+       ^
+       | (references)
+       |
+[ NEW TX INPUT ]
+       |
+       V
+[ NEW OUTPUTS CREATED ]
+            </div>
+        </div>
+        <div class="slide-number">24</div>
+    </div>
+
+    <div class="slide-container" id="slide25">
+        <h2 class="slide-title">tx_anatomy.sys</h2>
+        <div class="content-area">
+            <p style="color: #e5e7eb; margin-bottom: 20px;">Consume and create.</p>
+            <div class="ascii-box" style="font-size: 16px;">
++-------------------+      +-----------------------+      +-------------------+
+| Input 1 (UTXO)    |      |                       |      | Output 1 (Recip)  |
+| 0.35 BTC          |----->|     BITCOIN           |----->| 0.40 BTC          |
++-------------------+      |     TRANSACTION       |      +-------------------+
+                           |                       |
++-------------------+      |     Total In: 0.55    |      +-------------------+
+| Input 2 (UTXO)    |----->|                       |----->| Output 2 (Change) |
+| 0.20 BTC          |      +-----------------------+      | 0.149 BTC         |
++-------------------+                                     +-------------------+
+
+<span class="warning">[!] Fee = Inputs - Outputs (0.55 - 0.549 = 0.001 BTC)</span>
+            </div>
+        </div>
+        <div class="slide-number">25</div>
+    </div>
+
+    <div class="slide-container" id="slide26">
+        <h2 class="slide-title">calculate_fee.py</h2>
+        <div class="content-area two-column">
+            <div>
+                <p style="font-family: 'VT323'; font-size: 40px; color: #ff3333; margin-bottom: 30px;">
+                    fee = inputs - outputs
+                </p>
+                <p style="color: #e5e7eb;">Bitcoin fees are implicit. There is no separate "fee output" recorded on the ledger.</p>
+            </div>
+            <div class="ascii-box" style="text-align: left;">
+> let inputs = 0.35 + 0.20
+> let outputs = 0.40 + 0.149
+
+> print(inputs)
+0.55 BTC
+
+> print(outputs)
+0.549 BTC
+
+> print(inputs - outputs)
+0.001 BTC (Miner Fee)
+            </div>
+        </div>
+        <div class="slide-number">26</div>
+    </div>
+
+    <div class="slide-container" id="slide27">
+        <h2 class="slide-title">change_mechanics.md</h2>
+        <div class="content-area two-column">
+            <div class="ascii-box">
+[ UTXO: 1.00 BTC ]
+       |
+       | (consumed fully)
+       V
+   [ TX ]
+    /  \
+   /    \
+[PAY]  [CHANGE]
+0.25    0.749
+
+(Fee: 0.001)
+            </div>
+            <div>
+                <p style="color: #e5e7eb; margin-bottom: 20px;">Why wallets create another output:</p>
+                <ul class="terminal-list">
+                    <li>You cannot spend part of a UTXO.</li>
+                    <li>The whole output is consumed.</li>
+                    <li>New outputs are created for the destination and the change.</li>
+                </ul>
+            </div>
+        </div>
+        <div class="slide-number">27</div>
+    </div>
+
+    <div class="slide-container" id="slide28">
+        <h2 class="slide-title">unlock_script.exe</h2>
+        <div class="content-area two-column">
+            <div>
+                <p style="color: #e5e7eb; margin-bottom: 20px;">Signatures unlock prior outputs.</p>
+                <p>The network verifies: does the unlocking data (signature) satisfy the locking condition (address)?</p>
+            </div>
+            <div class="ascii-box">
+[ LOCKED OUTPUT ]
+ (scriptPubKey)
+       ^
+       |
+[ INPUT PROVIDES ]
+ (sig + key data)
+       |
+       V
+ [ VALID SPEND ]
+            </div>
+        </div>
+        <div class="slide-number">28</div>
+    </div>
+
+    <div class="slide-container" id="slide29">
+        <h2 class="slide-title">address_formats.txt</h2>
+        <div class="content-area">
+            <p style="color: #e5e7eb; margin-bottom: 30px;">Visible clues, not identities.</p>
+            <div class="tiled-content">
+                <div class="tile">
+                    <h3>Legacy</h3>
+                    <p class="highlight">Starts with: 1</p>
+                    <p class="muted">P2PKH</p>
+                </div>
+                <div class="tile">
+                    <h3>Nested SegWit</h3>
+                    <p class="highlight">Starts with: 3</p>
+                    <p class="muted">P2SH-wrapped</p>
+                </div>
+                <div class="tile">
+                    <h3>Native SegWit</h3>
+                    <p class="highlight">Starts with: bc1q</p>
+                    <p class="muted">P2WPKH / P2WSH</p>
+                </div>
+                <div class="tile">
+                    <h3>Taproot</h3>
+                    <p class="highlight">Starts with: bc1p</p>
+                    <p class="muted">P2TR</p>
+                </div>
+            </div>
+            <p style="margin-top: 40px; color: #888; text-align: center;">
+                Address type can help with change analysis, but it does not identify the person behind the wallet.
+            </p>
+        </div>
+        <div class="slide-number">29</div>
+    </div>
+
+    <div class="slide-container" id="slide30">
+        <h2 class="slide-title">trace_logic.sh</h2>
+        <div class="content-area two-column">
+            <div class="ascii-box">
+[ KNOWN OUTPUT ]
+       |
+[ SPENT AS INPUT ]
+       |
+[  NEW OUTPUTS   ]
+       |
+[  CHOOSE NEXT   ]
+            </div>
+            <div>
+                <p style="color: #e5e7eb; margin-bottom: 20px;">Why Bitcoin tracing is output-level tracing.</p>
+                <p>A Bitcoin trace strictly follows outputs as they are spent into later transactions as inputs. You are tracking the chunks of data, not an account balance.</p>
+            </div>
+        </div>
+        <div class="slide-number">30</div>
+    </div>    
+
+<div class="slide-container" id="slide31">
+        <div class="sys-stats">UPTIME: 94:21:08<br>MEM: 24GB / 64GB<br>NET: SECURE</div>
+        <div class="content-area">
+            <div class="section-title-layout">
+                <p class="muted" style="margin-bottom: 10px;">[user@sys ~]$ ./load_part_3.sh</p>
+                <h1>Part III:<br>Ethereum Under the Hood<span class="cursor"></span></h1>
+                <p class="subtitle" style="color: #e5e7eb;">Accounts, gas, smart contracts, and token events.</p>
+            </div>
+        </div>
+        <div class="slide-number">31</div>
+    </div>
+
+    <div class="slide-container" id="slide32">
+        <h2 class="slide-title">state_machine.sys</h2>
+        <div class="content-area">
+            <p style="text-align: center; color: #e5e7eb; margin-bottom: 30px;">Ethereum is a shared state machine.</p>
+            <div class="ascii-box" style="padding: 40px; font-size: 24px;">
+[ STATE BEFORE ] =======> ( TRANSACTION ) =======> [ STATE AFTER ]
+            </div>
+            <p style="margin-top: 40px; color: #888; text-align: center;">
+                Ethereum transactions change account balances and contract state directly.
+            </p>
+        </div>
+        <div class="slide-number">32</div>
+    </div>
+
+    <div class="slide-container" id="slide33">
+        <h2 class="slide-title">account_types.cfg</h2>
+        <div class="content-area two-column">
+            <div class="tile" style="border-color: #00ff41;">
+                <h3 style="color: #00ff41;">Externally Owned Account (EOA)</h3>
+                <ul class="terminal-list">
+                    <li>Controlled by a private key</li>
+                    <li>Can initiate transactions</li>
+                    <li>Example: MetaMask account</li>
+                </ul>
+            </div>
+            <div class="tile" style="border-color: #555;">
+                <h3 style="color: #a3a3a3;">Contract Account</h3>
+                <ul class="terminal-list" style="color: #888;">
+                    <li>Controlled by code</li>
+                    <li>Has storage and logic</li>
+                    <li>Executes when called</li>
+                </ul>
+            </div>
+        </div>
+        <p style="margin-top: 40px; text-align: center; color: #e5e7eb; font-size: 24px;">
+            Same address format. <span class="highlight">Very different control model.</span>
+        </p>
+        <div class="slide-number">33</div>
+    </div>
+
+    <div class="slide-container" id="slide34">
+        <h2 class="slide-title">interface_layer.md</h2>
+        <div class="content-area two-column">
+            <div>
+                <p style="color: #e5e7eb; margin-bottom: 20px;">Wallets are interfaces; accounts are on-chain objects.</p>
+                <p>A wallet is the tool. An account is what actually exists on the blockchain state.</p>
+            </div>
+            <div class="ascii-box">
+[ WALLET APP ]
+ (MetaMask / Rabby)
+       |
+       | (manages)
+       V
+[ PRIVATE KEY / SEED ]
+       |
+       | (controls)
+       V
+[ EOA ADDRESS ]
+ (0x... on-chain)
+            </div>
+        </div>
+        <div class="slide-number">34</div>
+    </div>
+
+    <div class="slide-container" id="slide35">
+        <h2 class="slide-title">tx_fields.json</h2>
+        <div class="content-area">
+            <div class="tiled-content" style="gap: 10px;">
+                <div class="tile" style="min-width: 30%;">
+                    <h3 style="font-size: 20px;">from</h3>
+                    <p class="muted" style="font-size: 16px;">the signer / EOA</p>
+                </div>
+                <div class="tile" style="min-width: 30%; border-color: #ff3333;">
+                    <h3 style="font-size: 20px; color: #ff3333;">to</h3>
+                    <p class="muted" style="font-size: 16px;">recipient or contract</p>
+                </div>
+                <div class="tile" style="min-width: 30%;">
+                    <h3 style="font-size: 20px;">value</h3>
+                    <p class="muted" style="font-size: 16px;">native ETH amount</p>
+                </div>
+                <div class="tile" style="min-width: 30%;">
+                    <h3 style="font-size: 20px;">data</h3>
+                    <p class="muted" style="font-size: 16px;">instructions / function call</p>
+                </div>
+                <div class="tile" style="min-width: 30%;">
+                    <h3 style="font-size: 20px;">gas</h3>
+                    <p class="muted" style="font-size: 16px;">execution budget + price</p>
+                </div>
+                <div class="tile" style="min-width: 30%;">
+                    <h3 style="font-size: 20px;">nonce</h3>
+                    <p class="muted" style="font-size: 16px;">sender transaction count</p>
+                </div>
+            </div>
+            <div style="margin-top: 30px; padding: 20px; border: 1px dashed #ff3333; background: rgba(255,51,51,0.05);">
+                <p style="color: #ff3333; text-align: center;">
+                    [WARNING] The "to" field is not always the economic recipient. For tokens, it is the contract.
+                </p>
+            </div>
+        </div>
+        <div class="slide-number">35</div>
+    </div>
+
+    <div class="slide-container" id="slide36">
+        <h2 class="slide-title">gas_mechanics.sh</h2>
+        <div class="content-area two-column">
+            <div class="ascii-box">
+  [ TRANSACTION ]
+         |
+         V
+  [ EVM WORK ]
+(Compute + Storage)
+         |
+         V
+  [ GAS FEE ]
+ (Paid in ETH)
+            </div>
+            <div>
+                <p style="color: #e5e7eb; margin-bottom: 20px;">Paying for execution.</p>
+                <p>Even ERC-20 token transfers require ETH to pay for the gas on the Ethereum network.</p>
+            </div>
+        </div>
+        <div class="slide-number">36</div>
+    </div>
+
+    <div class="slide-container" id="slide37">
+        <h2 class="slide-title">execute_contract.bin</h2>
+        <div class="content-area two-column">
+            <div>
+                <p style="color: #e5e7eb; margin-bottom: 20px;">Code at an address.</p>
+                <p>A contract can hold assets, update balances, emit events, and call other contracts.</p>
+            </div>
+            <div class="ascii-box">
+[ EOA SIGNS TX ]
+       |
+       V
+[ CONTRACT ADDRESS ]
+    (0xABC...)
+       |
+       V
+[ CODE EXECUTES ]
+ (State Changes)
+            </div>
+        </div>
+        <div class="slide-number">37</div>
+    </div>
+
+    <div class="slide-container" id="slide38">
+        <h2 class="slide-title">erc20_ledger.db</h2>
+        <div class="content-area two-column">
+            <div class="ascii-box" style="text-align: left; font-size: 16px;">
+// USDT Contract Internal Ledger
+
+mapping(address => uint256) balances;
+
+Address A: 20,000 USDT
+Address B: 5,000  USDT
+Address C: 0      USDT
+
+> transfer(B, 1000)
+> EMIT TransferEvent(A -> B, 1000)
+            </div>
+            <div>
+                <p style="color: #e5e7eb; margin-bottom: 20px;">Ledgers inside contracts.</p>
+                <ul class="terminal-list">
+                    <li>Token balances are contract state.</li>
+                    <li>Token transfers show up as <span class="highlight">events/logs</span>.</li>
+                </ul>
+            </div>
+        </div>
+        <div class="slide-number">38</div>
+    </div>
+
+    <div class="slide-container" id="slide39">
+        <h2 class="slide-title">transfer_comparison.md</h2>
+        <div class="content-area">
+            <div class="two-column" style="gap: 20px; align-items: start;">
+                <div class="tile" style="border-color: #555;">
+                    <h3 style="color: #a3a3a3; text-align: center;">Simple ETH Transfer</h3>
+                    <div class="ascii-box" style="background: transparent; border: none; font-size: 14px; box-shadow: none;">
+[Address A] --(5.0 ETH)--> [Address B]
+
+* Gas deducted from A separately.
+* Recipient does not pay the gas fee.
+                    </div>
+                </div>
+                <div class="tile" style="border-color: #00ff41;">
+                    <h3 style="color: #00ff41; text-align: center;">ERC-20 Token Transfer</h3>
+                    <div class="ascii-box" style="background: transparent; border: none; font-size: 14px; box-shadow: none; color: #00ff41;">
+[Address A] --(TX)--> [USDT Contract]
+                         |
+                 (Internal Ledger)
+                 A: -10,000 USDT
+                 B: +10,000 USDT
+                         |
+                  (Transfer Logged)
+                         V
+                    [Address B]
+                    </div>
+                </div>
+            </div>
+            <p style="margin-top: 20px; color: #ff3333; text-align: center; font-size: 18px;">
+                The transaction's "To" field shows the contract address, not the token recipient.<br>The actual token movement is logged as an event inside the contract.
+            </p>
+        </div>
+        <div class="slide-number">39</div>
+    </div>
+
+    <div class="slide-container" id="slide40">
+        <h2 class="slide-title">read_logs.sh</h2>
+        <div class="content-area two-column">
+            <div>
+                <h3 style="color: #a3a3a3;">Parent Transaction</h3>
+                <ul class="terminal-list" style="color: #888;">
+                    <li>from: caller EOA</li>
+                    <li>to: token contract</li>
+                    <li>value: often 0 ETH</li>
+                    <li>gas paid by caller</li>
+                </ul>
+            </div>
+            <div>
+                <h3 style="color: #00ff41;">Token Event</h3>
+                <ul class="terminal-list">
+                    <li>from: token sender</li>
+                    <li>to: token recipient</li>
+                    <li>amount: token value</li>
+                    <li>emitted by contract</li>
+                </ul>
+            </div>
+        </div>
+        <p style="margin-top: 40px; border-left: 3px solid #00ff41; padding-left: 15px; color: #e5e7eb;">
+            A beginner reads the parent tx. <span class="highlight">An analyst reads the event logs too.</span>
+        </p>
+        <div class="slide-number">40</div>
+    </div>
+
+    <div class="slide-container" id="slide41">
+        <h2 class="slide-title">set_allowance.exe</h2>
+        <div class="content-area two-column">
+            <div class="ascii-box">
+[ OWNER ]
+(Address A)
+    |
+    | approve(spender, amount)
+    V
+[ CONTRACT ]
+    |
+    | (allowance updated)
+    V
+[ SPENDER ]
+(Can now call transferFrom)
+            </div>
+            <div>
+                <p style="color: #e5e7eb; margin-bottom: 20px;">Approvals and allowances.</p>
+                <p>Approval grants permission to another address or contract. It does <span class="warning">not</span> move tokens yet.</p>
+            </div>
+        </div>
+        <div class="slide-number">41</div>
+    </div>
+
+    <div class="slide-container" id="slide42">
+        <h2 class="slide-title">drain_sequence.log</h2>
+        <div class="content-area">
+            <div class="ascii-box" style="font-size: 15px; text-align: left; padding: 20px;">
+=== STEP 1: APPROVAL TRANSACTION (Victim pays gas) ===
+[Phishing Site] -> [Victim EOA] --(approve tx)--> [USDT Contract]
+                                                    |
+[Attacker Contract] <--(Granted Spending Permission)-+
+(NO TOKENS MOVE YET)
+
+... Hours or days later ...
+
+=== STEP 2: DRAIN TRANSACTION (Attacker pays gas) ===
+[Attacker EOA] --(calls contract)--> [Attacker Contract]
+                                          |
+                                    (transferFrom)
+                                          V
+[Victim EOA] <--(Ledger Update)----  [USDT Contract] --(Ledger Update)--> [Attacker Address]
+ (-10,000 USDT)                                                             (+10,000 USDT)
+            </div>
+            <p style="margin-top: 20px; color: #ff3333; text-align: center;">
+                The victim only signed once (the approval). The drain happens later without any action from the victim.
+            </p>
+        </div>
+        <div class="slide-number">42</div>
+    </div>
+
+    <div class="slide-container" id="slide43">
+        <h2 class="slide-title">internal_tx.trace</h2>
+        <div class="content-area two-column">
+            <div>
+                <p style="color: #e5e7eb; margin-bottom: 20px;">Internal calls and hidden movement.</p>
+                <p>Explorers may hide internal calls or separate them into another tab. You have to look for them.</p>
+            </div>
+            <div class="ascii-box" style="text-align: left;">
+[ EOA TX ]
+  |
+  +-> [ Contract A ]
+        |
+        +-> [ Contract B ]
+              |
+              +-> ( ETH / Token OUT )
+            </div>
+        </div>
+        <div class="slide-number">43</div>
+    </div>
+
+    <div class="slide-container" id="slide44">
+        <h2 class="slide-title">eth_tracing_rules.txt</h2>
+        <div class="content-area">
+            <p style="color: #e5e7eb; margin-bottom: 30px;">Ethereum tracing follows state changes and events:</p>
+            <div class="tiled-content">
+                <div class="tile">
+                    <h3>Native ETH</h3>
+                    <p class="muted">Track account balance changes and internal ETH transfers.</p>
+                </div>
+                <div class="tile">
+                    <h3>ERC-20 Tokens</h3>
+                    <p class="muted">Track Transfer events emitted from token contracts.</p>
+                </div>
+                <div class="tile">
+                    <h3>Contracts</h3>
+                    <p class="muted">Read function calls, logs, and output assets.</p>
+                </div>
+            </div>
+            <p style="margin-top: 40px; color: #888; text-align: center;">
+                On Ethereum, the asset movement may be in a tab the main transaction page does not emphasize.
+            </p>
+        </div>
+        <div class="slide-number">44</div>
+    </div>
+
+    <div class="slide-container" id="slide45">
+        <div class="content-area">
+            <div class="section-title-layout">
+                <p class="muted" style="margin-bottom: 10px;">[user@sys ~]$ ./load_part_4.sh</p>
+                <h1>Part IV:<br>Compare the Models<span class="cursor"></span></h1>
+                <p class="subtitle" style="color: #e5e7eb;">Same cryptography; different ledger mechanics.</p>
+            </div>
+        </div>
+        <div class="slide-number">45</div>
+    </div>
+
+    <div class="slide-container" id="slide46">
+        <h2 class="slide-title">diff models.txt</h2>
+        <div class="content-area two-column" style="align-items: stretch;">
+            <div class="tile" style="border-color: #f7931a;">
+                <h3 style="color: #f7931a;">Bitcoin (Outputs)</h3>
+                <ul class="terminal-list">
+                    <li>Outputs are value chunks</li>
+                    <li>Inputs spend prior outputs</li>
+                    <li>Change is created</li>
+                    <li>Fee = inputs - outputs</li>
+                </ul>
+                <p style="margin-top: 20px; font-style: italic; color: #888;">Tracing asks: Which output continues?</p>
+            </div>
+            <div class="tile" style="border-color: #627eea;">
+                <h3 style="color: #627eea;">Ethereum (State)</h3>
+                <ul class="terminal-list">
+                    <li>Accounts have balances</li>
+                    <li>Transactions change state</li>
+                    <li>Gas pays for execution</li>
+                    <li>Token movement is events/state</li>
+                </ul>
+                <p style="margin-top: 20px; font-style: italic; color: #888;">Tracing asks: What state/event changed?</p>
+            </div>
+        </div>
+        <div class="slide-number">46</div>
+    </div>
+
+    <div class="slide-container" id="slide47">
+        <h2 class="slide-title">error_logs.txt</h2>
+        <div class="content-area">
+            <ul class="terminal-list" style="color: #ff3333; font-size: 24px; line-height: 2;">
+                <li>Treating a Bitcoin address like a bank account</li>
+                <li>Assuming the larger Bitcoin output is always change</li>
+                <li>Missing ERC-20 token transfers because ETH value is zero</li>
+                <li>Reading the transaction “to” field as the token recipient</li>
+                <li>Forgetting gas/native asset is separate from token value</li>
+            </ul>
+            <p style="margin-top: 30px; border-left: 3px solid #00ff41; padding-left: 15px; color: #e5e7eb;">
+                The fix is the same every time: <span class="highlight">slow down and inspect the actual mechanics.</span>
+            </p>
+        </div>
+        <div class="slide-number">47</div>
+    </div>
+
+    <div class="slide-container" id="slide48">
+        <h2 class="slide-title">best_practices.cfg</h2>
+        <div class="content-area">
+            <div class="tiled-content">
+                <div class="tile">
+                    <h3>Bitcoin</h3>
+                    <p class="muted">Check inputs<br>Check outputs<br>Check fee<br>Check spend status</p>
+                </div>
+                <div class="tile">
+                    <h3>Ethereum</h3>
+                    <p class="muted">Check parent tx<br>Check token transfers<br>Check internal txs<br>Check logs</p>
+                </div>
+                <div class="tile" style="border-color: #00ff41;">
+                    <h3 style="color: #00ff41;">Both</h3>
+                    <p>Copy exact hashes<br>Record chain/asset<br>Separate fact from display<br>Verify assumptions</p>
+                </div>
+            </div>
+            <p style="margin-top: 40px; color: #888; text-align: center; font-size: 22px;">
+                Explorers are views of blockchain data. <span class="warning">They are not the chain itself.</span>
+            </p>
+        </div>
+        <div class="slide-number">48</div>
+    </div>
+
+    <div class="slide-container" id="slide49">
+        <h2 class="slide-title">conclusion.md</h2>
+        <div class="content-area two-column">
+            <div>
+                <p style="color: #e5e7eb; margin-bottom: 20px;">Tracing is easier when the mechanics are visible.</p>
+                <ul class="terminal-list">
+                    <li><span class="highlight">keys</span> explain control</li>
+                    <li><span class="highlight">signatures</span> explain authorization</li>
+                    <li><span class="highlight">UTXOs</span> explain Bitcoin spend paths</li>
+                    <li><span class="highlight">events</span> explain token movement</li>
+                    <li><span class="highlight">contracts</span> explain why explorer pages can mislead</li>
+                </ul>
+            </div>
+            <div class="ascii-box" style="font-size: 28px; padding: 60px;">
+[ UNDER THE HOOD ]
+        |
+        V
+[ BETTER TRACING ]
+            </div>
+        </div>
+        <div class="slide-number">49</div>
+    </div>
+
+    <div class="slide-container" id="slide50">
+        <h2 class="slide-title">man_pages.txt</h2>
+        <div class="content-area two-column">
+            <div class="tile" style="border-color: #555;">
+                <h3 style="color: #a3a3a3;">LearnMeABitcoin</h3>
+                <p class="muted" style="line-height: 1.8;">
+                    Wallets · Exchanges · Sending<br>
+                    Network · Node · Outputs<br>
+                    Keys & Addresses · Signatures<br>
+                    UTXO · Address formats
+                </p>
+            </div>
+            <div class="tile" style="border-color: #555;">
+                <h3 style="color: #a3a3a3;">Ethereum.org</h3>
+                <p class="muted" style="line-height: 1.8;">
+                    Accounts · Transactions · Gas<br>
+                    EVM · Smart Contracts<br>
+                    ERC-20 token standard
+                </p>
+            </div>
+        </div>
+        <div style="margin-top: 40px; text-align: center; color: #888;">
+            <p>Use this module as a map. The reference pages are where students can go deeper after class.</p>
+            <p style="margin-top: 10px; color: #00ff41;">[ PROCESS TERMINATED SUCCESSFULLY ]<span class="cursor"></span></p>
+        </div>
+        <div class="slide-number">50</div>
+    </div>
+
+    <!-- ============================================================
+         PRESENTER UI
+         ============================================================ -->
+    <div id="progress-bar"></div>
+    <div id="present-counter">01 / 50</div>
+    <div id="present-toggle">[ ▶ PRESENT ]</div>
+    <input id="jump-input" type="text" inputmode="numeric" placeholder="##" maxlength="3" />
+
+    <div id="help-overlay">
+        <h2>root@investigator:~# man presenter</h2>
+        <table>
+            <tr><td><span class="key">→ &nbsp; Space &nbsp; PgDn &nbsp; J</span></td><td>next slide</td></tr>
+            <tr><td><span class="key">← &nbsp; PgUp &nbsp; K</span></td><td>previous slide</td></tr>
+            <tr><td><span class="key">Home &nbsp; G</span></td><td>first slide</td></tr>
+            <tr><td><span class="key">End &nbsp; Shift+G</span></td><td>last slide</td></tr>
+            <tr><td><span class="key">0-9 then Enter</span></td><td>jump to slide number</td></tr>
+            <tr><td><span class="key">F</span></td><td>toggle fullscreen</td></tr>
+            <tr><td><span class="key">P &nbsp; Esc</span></td><td>exit presenter mode</td></tr>
+            <tr><td><span class="key">H &nbsp; ?</span></td><td>show / hide this help</td></tr>
+        </table>
+        <p class="close-hint">press any key to close this help</p>
+    </div>
+
+    <script>
+    (function () {
+        const slides = Array.from(document.querySelectorAll('.slide-container'));
+        const total = slides.length;
+        let current = 0;
+        let presenting = false;
+
+        const body = document.body;
+        const bar = document.getElementById('progress-bar');
+        const counter = document.getElementById('present-counter');
+        const toggle = document.getElementById('present-toggle');
+        const help = document.getElementById('help-overlay');
+        const jump = document.getElementById('jump-input');
+
+        // Native slide dimensions (must match .slide-container CSS)
+        const SLIDE_W = 1280;
+        const SLIDE_H = 720;
+
+        function pad(n) { return String(n + 1).padStart(2, '0'); }
+
+        // Scale the active slide to fit the viewport while preserving aspect ratio
+        function fitScale() {
+            if (!presenting) return;
+            const margin = 0.96; // leave a little breathing room
+            const sx = (window.innerWidth * margin) / SLIDE_W;
+            const sy = (window.innerHeight * margin) / SLIDE_H;
+            const scale = Math.min(sx, sy);
+            slides.forEach(s => s.style.setProperty('--scale', scale));
+        }
+
+        function show(idx) {
+            current = Math.max(0, Math.min(total - 1, idx));
+            slides.forEach((s, i) => s.classList.toggle('active', i === current));
+            bar.style.width = ((current + 1) / total * 100) + '%';
+            counter.textContent = pad(current) + ' / ' + total;
+            fitScale();
+        }
+
+        function enterPresent() {
+            presenting = true;
+            body.classList.add('present');
+            toggle.textContent = '[ ✕ EXIT ]';
+            show(current);
+        }
+
+        function exitPresent() {
+            presenting = false;
+            body.classList.remove('present');
+            toggle.textContent = '[ ▶ PRESENT ]';
+            help.classList.remove('show');
+            jump.classList.remove('show');
+            // Scroll the slide we were on into view in document mode
+            slides[current].scrollIntoView({ behavior: 'instant', block: 'start' });
+        }
+
+        function togglePresent() { presenting ? exitPresent() : enterPresent(); }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                document.exitFullscreen().catch(() => {});
+            }
+        }
+
+        // ---- jump-to-slide buffer ----
+        let jumpBuffer = '';
+        let jumpActive = false;
+        function startJump(firstChar) {
+            jumpActive = true;
+            jumpBuffer = firstChar;
+            jump.value = jumpBuffer;
+            jump.classList.add('show');
+        }
+        function commitJump() {
+            const n = parseInt(jumpBuffer, 10);
+            if (!isNaN(n) && n >= 1 && n <= total) show(n - 1);
+            cancelJump();
+        }
+        function cancelJump() {
+            jumpActive = false;
+            jumpBuffer = '';
+            jump.classList.remove('show');
+        }
+
+        // ---- click handlers ----
+        toggle.addEventListener('click', togglePresent);
+
+        // Click on left/right half of an active slide to navigate
+        slides.forEach(s => {
+            s.addEventListener('click', (e) => {
+                if (!presenting) return;
+                const rect = s.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                if (x < rect.width / 2) show(current - 1);
+                else show(current + 1);
+            });
+        });
+
+        window.addEventListener('resize', fitScale);
+
+        // ---- keyboard ----
+        document.addEventListener('keydown', (e) => {
+            // Jump buffer mode takes priority
+            if (jumpActive) {
+                if (e.key === 'Enter') { e.preventDefault(); commitJump(); }
+                else if (e.key === 'Escape') { e.preventDefault(); cancelJump(); }
+                else if (/^[0-9]$/.test(e.key)) {
+                    e.preventDefault();
+                    jumpBuffer += e.key;
+                    jump.value = jumpBuffer;
+                }
+                return;
+            }
+
+            // If help is open, any key closes it
+            if (help.classList.contains('show')) {
+                e.preventDefault();
+                help.classList.remove('show');
+                return;
+            }
+
+            switch (e.key) {
+                case 'ArrowRight':
+                case ' ':
+                case 'PageDown':
+                case 'j':
+                case 'J':
+                    if (presenting) { e.preventDefault(); show(current + 1); }
+                    break;
+                case 'ArrowLeft':
+                case 'PageUp':
+                case 'k':
+                case 'K':
+                    if (presenting) { e.preventDefault(); show(current - 1); }
+                    break;
+                case 'Home':
+                    if (presenting) { e.preventDefault(); show(0); }
+                    break;
+                case 'g':
+                    if (presenting) { e.preventDefault(); show(0); }
+                    break;
+                case 'G':
+                    if (presenting) { e.preventDefault(); show(total - 1); }
+                    break;
+                case 'End':
+                    if (presenting) { e.preventDefault(); show(total - 1); }
+                    break;
+                case 'f':
+                case 'F':
+                    e.preventDefault();
+                    if (!presenting) enterPresent();
+                    toggleFullscreen();
+                    break;
+                case 'p':
+                case 'P':
+                    e.preventDefault();
+                    togglePresent();
+                    break;
+                case 'Escape':
+                    if (presenting) { e.preventDefault(); exitPresent(); }
+                    break;
+                case 'h':
+                case 'H':
+                case '?':
+                    e.preventDefault();
+                    help.classList.toggle('show');
+                    break;
+                default:
+                    // Start jump-to-slide on a digit
+                    if (presenting && /^[0-9]$/.test(e.key)) {
+                        e.preventDefault();
+                        startJump(e.key);
+                    }
+            }
+        });
+
+        // Start in document (scroll) mode. Press P or the button to present.
+        // Deep-link support: #present or #slideN auto-enters presenter mode.
+        function handleHash() {
+            const h = window.location.hash;
+            const m = h.match(/slide(\d+)/i);
+            if (m) {
+                current = Math.max(0, Math.min(total - 1, parseInt(m[1], 10) - 1));
+                enterPresent();
+            } else if (/present/i.test(h)) {
+                enterPresent();
+            }
+        }
+        handleHash();
+    })();
+    </script>
+</body>
+</html>
