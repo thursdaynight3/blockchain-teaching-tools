@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blockchain Teaching Tools</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#ECE6D8; --panel:#FFFDF8; --ink:#23282E; --muted:#7A8088;
+  --line:#DDD4C0; --paper2:#E4DCC9;
+  --blue:#2563EB; --blue-s:#EAF1FF; --violet:#7C3AED; --violet-s:#F3ECFD;
+  --green:#15803D;
+  --disp:'Space Grotesk',sans-serif; --mono:'IBM Plex Mono',monospace;
+  --sh:0 2px 4px rgba(60,50,30,.05),0 10px 30px rgba(60,50,30,.09);
+}
+*{box-sizing:border-box;}
+body{margin:0;min-height:100vh;background:radial-gradient(1200px 620px at 80% -8%, #F2EDE0, transparent 55%),var(--paper);
+  color:var(--ink);font-family:var(--disp);padding:48px 22px 60px;line-height:1.45;}
+.wrap{max-width:1000px;margin:0 auto;}
+
+header.top{position:relative;border-bottom:2px solid var(--ink);padding-bottom:20px;margin-bottom:34px;}
+.eyebrow{display:block;font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);}
+h1{font-size:40px;margin:6px 0 0;font-weight:700;letter-spacing:-.02em;}
+.lede{display:block;font-size:17px;color:var(--muted);margin-top:8px;max-width:660px;}
+
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+.card{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:18px;
+  overflow:hidden;text-decoration:none;color:inherit;box-shadow:var(--sh);
+  transition:transform .15s ease, box-shadow .15s ease;}
+.card:hover{transform:translateY(-4px);box-shadow:0 6px 14px rgba(60,50,30,.08),0 20px 44px rgba(60,50,30,.16);}
+.card .strip{height:8px;}
+.card.utxo .strip{background:var(--blue);}
+.card.trace .strip{background:var(--violet);}
+.card .body{padding:26px 26px 24px;display:flex;flex-direction:column;flex:1;}
+.glyph{width:60px;height:60px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:18px;}
+.card.utxo .glyph{background:var(--blue-s);color:var(--blue);}
+.card.trace .glyph{background:var(--violet-s);color:var(--violet);}
+.glyph svg{width:32px;height:32px;}
+.tlabel{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
+.tname{font-size:24px;font-weight:700;margin:4px 0 10px;letter-spacing:-.01em;}
+.tdesc{font-size:15px;color:#4A5159;line-height:1.55;flex:1;}
+.teaches{font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:14px;padding-top:12px;border-top:1px dashed var(--line);}
+.teaches b{color:var(--ink);font-weight:600;}
+.launch{display:inline-flex;align-items:center;gap:8px;margin-top:18px;font-weight:600;font-size:15px;}
+.card.utxo .launch{color:var(--blue);}
+.card.trace .launch{color:var(--violet);}
+.launch svg{width:16px;height:16px;transition:transform .15s ease;}
+.card:hover .launch svg{transform:translateX(4px);}
+
+footer{margin-top:40px;text-align:center;font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;}
+@media(max-width:760px){.cards{grid-template-columns:1fr;} h1{font-size:32px;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <span class="eyebrow">Blockchain Investigation · Teaching Tools</span>
+    <h1>Blockchain Teaching Tools</h1>
+    <span class="lede">Interactive aids for an advanced blockchain analysis seminar. Pick one up, drive it live in front of the class, and let people change an input and watch the consequence.</span>
+  </header>
+
+  <div class="cards">
+
+    <!-- ============================================================
+         TOOL 1 — if you rename the file, update the href below
+         ============================================================ -->
+    <a class="card utxo" href="UTXO_Sandbox.html">
+      <div class="strip"></div>
+      <div class="body">
+        <div class="glyph">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+            <path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>
+          </svg>
+        </div>
+        <div class="tlabel">Tool 01 · Bitcoin</div>
+        <div class="tname">UTXO Sandbox</div>
+        <div class="tdesc">Build a Bitcoin transaction by selecting unspent outputs from a wallet. Watch the selected UTXOs get consumed, a payment output and a change output get created, and the fee fall out as the difference. Includes scenario presets and a live transaction history.</div>
+        <div class="teaches">Teaches: <b>whole-output spending · change · fee = inputs − outputs</b></div>
+        <span class="launch">Open tool
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </span>
+      </div>
+    </a>
+
+    <!-- ============================================================
+         TOOL 2 — if you rename the file, update the href below
+         ============================================================ -->
+    <a class="card trace" href="Tracing_Method_Calculator.html">
+      <div class="strip"></div>
+      <div class="body">
+        <div class="glyph">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 3h5v5"/><path d="M8 3H3v5"/>
+            <path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m15 9 6-6"/>
+          </svg>
+        </div>
+        <div class="tlabel">Tool 02 · Tracing</div>
+        <div class="tname">Tracing-Method Calculator</div>
+        <div class="tdesc">Build a sequence of deposits and withdrawals on one commingled address, tag deposits as victim or clean, and run FIFO, LIFO, PIFO, pro-rata, and LIBR side by side on the same facts. The answers diverge — which is the point. Includes the worked examples from the methodology handout.</div>
+        <div class="teaches">Teaches: <b>method choice is a documented judgment · LIBR is a ceiling</b></div>
+        <span class="launch">Open tool
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </span>
+      </div>
+    </a>
+
+  </div>
+
+  <footer>For instruction only · illustrative amounts · no case data</footer>
+</div>
+</body></html>
