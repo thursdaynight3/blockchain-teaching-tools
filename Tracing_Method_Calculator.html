@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tracing Method Calculator · Blockchain Teaching Tool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#ECE6D8; --panel:#FFFDF8; --ink:#23282E; --muted:#7A8088;
+  --line:#DDD4C0; --paper2:#E4DCC9;
+  --victim:#7C3AED; --other:#64748B; --green:#15803D; --red:#DC2626; --blue:#2563EB;
+  --victim-s:#F3ECFD; --other-s:#EEF1F5;
+  --disp:'Space Grotesk',sans-serif; --mono:'IBM Plex Mono',monospace;
+  --sh:0 2px 4px rgba(60,50,30,.05),0 8px 24px rgba(60,50,30,.08);
+}
+*{box-sizing:border-box;}
+body{margin:0;background:radial-gradient(1200px 600px at 80% -5%, #F2EDE0, transparent 55%),var(--paper);
+  color:var(--ink);font-family:var(--disp);padding:40px 22px 60px;line-height:1.45;}
+.wrap{max-width:1120px;margin:0 auto;}
+header.topbar{position:relative;border-bottom:2px solid var(--ink);padding-bottom:16px;margin-bottom:24px;}
+header.topbar .btn-reset{position:absolute;top:0;right:0;}
+.brand{display:block;}
+.eyebrow{display:block;font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);}
+h1{font-size:30px;margin:2px 0 0;font-weight:700;letter-spacing:-.01em;}
+.sub{display:block;font-size:15px;color:var(--muted);margin-top:3px;max-width:680px;}
+button{font-family:var(--disp);cursor:pointer;border:none;border-radius:10px;font-weight:600;}
+.btn-reset{background:transparent;border:1.5px solid var(--line);color:var(--ink);padding:9px 16px;font-size:14px;}
+.btn-reset:hover{background:var(--paper2);}
+
+.cols{display:grid;grid-template-columns:0.95fr 1.05fr;gap:22px;align-items:start;}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px 22px;box-shadow:var(--sh);}
+.panel h2{font-size:13px;font-family:var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 14px;font-weight:600;}
+
+/* ledger builder */
+.ledger{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+.evt{display:flex;align-items:center;gap:10px;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:8px 10px;}
+.evt .seq{font-family:var(--mono);font-size:12px;color:var(--muted);width:22px;text-align:center;}
+.evt select,.evt input{font-family:var(--mono);font-size:14px;border:1.5px solid var(--line);border-radius:8px;padding:6px 8px;background:#fff;color:var(--ink);}
+.evt input{width:96px;}
+.evt select:focus,.evt input:focus{outline:none;border-color:var(--blue);}
+.evt .kind-dep{color:var(--green);} .evt .kind-wd{color:var(--red);}
+.evt .tagsel.victim{color:var(--victim);font-weight:600;} .evt .tagsel.other{color:var(--other);}
+.evt .del{margin-left:auto;background:transparent;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0 4px;}
+.evt .del:hover{color:var(--red);}
+.evt.start{background:var(--other-s);}
+.addrow{display:flex;gap:8px;margin-top:4px;}
+.addrow button{background:var(--paper);border:1px solid var(--line);color:var(--ink);font-size:13px;padding:8px 12px;border-radius:9px;font-weight:500;}
+.addrow button:hover{background:var(--paper2);}
+
+.presets{margin-top:16px;border-top:1px dashed var(--line);padding-top:14px;}
+.presets .lbl{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.preset-btns{display:flex;flex-wrap:wrap;gap:8px;}
+.chip-btn{background:var(--paper);border:1px solid var(--line);color:var(--ink);font-size:12.5px;padding:7px 11px;border-radius:20px;font-weight:500;}
+.chip-btn:hover{background:var(--paper2);}
+
+/* results */
+.summary{display:flex;gap:10px;margin-bottom:16px;}
+.stat{flex:1;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px;text-align:center;}
+.stat .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+.stat .v{font-family:var(--mono);font-size:20px;font-weight:600;margin-top:3px;}
+.stat .v.victim{color:var(--victim);}
+
+.methods{display:flex;flex-direction:column;gap:10px;}
+.mrow{display:grid;grid-template-columns:120px 1fr 96px;gap:12px;align-items:center;
+  background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px;}
+.mrow .mname{font-weight:600;font-size:15px;}
+.mrow .mname small{display:block;font-family:var(--mono);font-size:10.5px;color:var(--muted);font-weight:400;letter-spacing:.04em;margin-top:2px;}
+.bar{height:26px;background:var(--other-s);border-radius:7px;overflow:hidden;position:relative;border:1px solid var(--line);}
+.bar .fill{height:100%;background:var(--victim);transition:width .4s ease;}
+.bar.ceiling .fill{background:repeating-linear-gradient(45deg,var(--victim),var(--victim) 7px,#9B6BE8 7px,#9B6BE8 14px);}
+.mrow .mval{font-family:var(--mono);font-size:16px;font-weight:600;color:var(--victim);text-align:right;}
+.mrow.hl{box-shadow:0 0 0 2px var(--victim);}
+
+.legend{display:flex;gap:16px;font-family:var(--mono);font-size:12px;color:var(--muted);margin:14px 0 4px;flex-wrap:wrap;}
+.legend span{display:inline-flex;align-items:center;gap:6px;}
+.sw{width:12px;height:12px;border-radius:3px;display:inline-block;}
+
+.note{margin-top:16px;background:var(--victim);color:#fff;border-radius:14px;padding:15px 18px;font-size:14.5px;line-height:1.55;}
+.note b{font-weight:600;} .note .hl{font-family:var(--mono);}
+
+.q{font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:10px;letter-spacing:.04em;}
+footer{margin-top:36px;text-align:center;font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;}
+@media(max-width:880px){.cols{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar">
+    <div class="brand">
+      <span class="eyebrow">Blockchain Investigation · Teaching Tool</span>
+      <h1>Tracing-Method Calculator</h1>
+      <span class="sub">One commingled address. One sequence of deposits and withdrawals. Different accounting methods give different answers — see how much of the victim's traced funds each one attributes to the money that left.</span>
+    </div>
+    <button class="btn-reset" id="resetBtn">↺ Clear</button>
+  </header>
+
+  <div class="cols">
+    <!-- LEDGER BUILDER -->
+    <div class="panel">
+      <h2>The address ledger</h2>
+      <div class="q">Build a sequence. Tag each deposit as victim (traced) or other (clean).</div>
+      <div class="ledger" id="ledger"></div>
+      <div class="addrow">
+        <button id="addDep">+ Deposit</button>
+        <button id="addWd">+ Withdrawal</button>
+      </div>
+      <div class="presets">
+        <div class="lbl">Load a worked example</div>
+        <div class="preset-btns">
+          <button class="chip-btn" data-preset="pifo">PIFO vs FIFO</button>
+          <button class="chip-btn" data-preset="libr">LIBR (no replenish)</button>
+          <button class="chip-btn" data-preset="prorata">Pro-rata</button>
+          <button class="chip-btn" data-preset="mix">Mixed sequence</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="panel">
+      <h2>Results · traced funds attributed to withdrawals</h2>
+      <div class="summary" id="summary"></div>
+      <div class="q">How much of the victim's traced funds is treated as having <b>left the account</b>, by method:</div>
+      <div class="methods" id="methods"></div>
+      <div class="legend">
+        <span><span class="sw" style="background:var(--victim)"></span> traced funds out</span>
+        <span><span class="sw" style="background:repeating-linear-gradient(45deg,var(--victim),var(--victim) 4px,#9B6BE8 4px,#9B6BE8 8px)"></span> LIBR ceiling (remaining)</span>
+      </div>
+      <div class="note" id="note"></div>
+    </div>
+  </div>
+
+  <footer>Whole-unit amounts · for instruction only · method choice is an investigative & legal judgment</footer>
+</div>
+
+<script>
+// ---------------- verified engines (tested against handout examples) ----------------
+function fifo(ev){let lots=[],out=0;for(const e of ev){if(e.kind==='dep')lots.push([e.amt,e.tag==='victim']);
+  else{let w=e.amt;while(w>0&&lots.length){let[a,v]=lots[0];let t=Math.min(a,w);if(v)out+=t;a-=t;w-=t;if(a===0)lots.shift();else lots[0][0]=a;}}}
+  return{out,remain:lots.reduce((s,[a,v])=>s+(v?a:0),0)};}
+function lifo(ev){let lots=[],out=0;for(const e of ev){if(e.kind==='dep')lots.push([e.amt,e.tag==='victim']);
+  else{let w=e.amt;while(w>0&&lots.length){let i=lots.length-1,[a,v]=lots[i],t=Math.min(a,w);if(v)out+=t;a-=t;w-=t;if(a===0)lots.pop();else lots[i][0]=a;}}}
+  return{out,remain:lots.reduce((s,[a,v])=>s+(v?a:0),0)};}
+function pifo(ev){let vic=0,oth=0,out=0;for(const e of ev){if(e.kind==='dep'){if(e.tag==='victim')vic+=e.amt;else oth+=e.amt;}
+  else{let w=e.amt,tv=Math.min(vic,w);vic-=tv;out+=tv;w-=tv;let to=Math.min(oth,w);oth-=to;}}return{out,remain:vic};}
+function prorata(ev){let B=0,T=0,out=0;for(const e of ev){if(e.kind==='dep'){B+=e.amt;if(e.tag==='victim')T+=e.amt;}
+  else{let f=B>0?T/B:0,to=e.amt*f;out+=to;T-=to;B-=e.amt;}}return{out,remain:T};}
+function libr(ev){let B=0,T=0;for(const e of ev){if(e.kind==='dep'){B+=e.amt;if(e.tag==='victim')T+=e.amt;}
+  else{B-=e.amt;if(B<T)T=B;}}return{remain:T};}
+
+// ---------------- state ----------------
+let ledger=[]; // {kind:'dep'|'wd', amt, tag}
+const PRESETS={
+  pifo:[['dep',10000,'other'],['dep',30000,'victim'],['wd',29500]],
+  libr:[['dep',5000,'other'],['dep',20000,'victim'],['wd',18000],['dep',10000,'other'],['wd',15000]],
+  prorata:[['dep',40000,'victim'],['dep',60000,'other'],['wd',50000]],
+  mix:[['dep',25000,'victim'],['wd',10000],['dep',15000,'other'],['wd',12000],['wd',8000]],
+};
+function loadPreset(name){ ledger=PRESETS[name].map(([kind,amt,tag])=>({kind,amt,tag:tag||'other'})); render(); }
+
+function fmt(n){ return Math.round(n).toLocaleString('en-US'); }
+function totalVictimIn(){ return ledger.filter(e=>e.kind==='dep'&&e.tag==='victim').reduce((s,e)=>s+e.amt,0); }
+
+function renderLedger(){
+  const el=document.getElementById('ledger'); el.innerHTML='';
+  ledger.forEach((e,i)=>{
+    const row=document.createElement('div'); row.className='evt';
+    if(e.kind==='dep'){
+      row.innerHTML=`<span class="seq">${i+1}</span>
+        <select class="kindsel">
+          <option value="dep" ${e.kind==='dep'?'selected':''}>deposit</option>
+          <option value="wd" ${e.kind==='wd'?'selected':''}>withdrawal</option>
+        </select>
+        <input type="number" class="amtin" value="${e.amt}" min="0" step="1000">
+        <select class="tagsel ${e.tag}">
+          <option value="victim" ${e.tag==='victim'?'selected':''}>victim (traced)</option>
+          <option value="other" ${e.tag==='other'?'selected':''}>other (clean)</option>
+        </select>
+        <button class="del">×</button>`;
+    } else {
+      row.innerHTML=`<span class="seq">${i+1}</span>
+        <select class="kindsel">
+          <option value="dep" ${e.kind==='dep'?'selected':''}>deposit</option>
+          <option value="wd" ${e.kind==='wd'?'selected':''}>withdrawal</option>
+        </select>
+        <input type="number" class="amtin" value="${e.amt}" min="0" step="1000">
+        <span class="tagsel" style="color:var(--muted);font-family:var(--mono);font-size:13px;">leaves account</span>
+        <button class="del">×</button>`;
+    }
+    row.querySelector('.kindsel').onchange=ev=>{ e.kind=ev.target.value; if(e.kind==='dep'&&!e.tag)e.tag='other'; render(); };
+    row.querySelector('.amtin').oninput=ev=>{ e.amt=parseFloat(ev.target.value||0); render(); };
+    const ts=row.querySelector('select.tagsel'); if(ts) ts.onchange=ev=>{ e.tag=ev.target.value; render(); };
+    row.querySelector('.del').onclick=()=>{ ledger.splice(i,1); render(); };
+    el.appendChild(row);
+  });
+}
+
+function renderResults(){
+  const ev=ledger.map(e=>({kind:e.kind,amt:e.amt,tag:e.tag}));
+  const vin=totalVictimIn();
+  const F=fifo(ev),L=lifo(ev),P=pifo(ev),R=prorata(ev),B=libr(ev);
+  // summary
+  const totWd=ledger.filter(e=>e.kind==='wd').reduce((s,e)=>s+e.amt,0);
+  document.getElementById('summary').innerHTML=`
+    <div class="stat"><div class="k">victim funds in</div><div class="v victim">${fmt(vin)}</div></div>
+    <div class="stat"><div class="k">total withdrawn</div><div class="v">${fmt(totWd)}</div></div>`;
+  // methods (out attributed to withdrawals); LIBR shows remaining ceiling instead
+  const maxV=Math.max(vin,1);
+  const rows=[
+    {name:'FIFO', sub:'first in, first out', val:F.out, ceiling:false},
+    {name:'LIFO', sub:'last in, first out', val:L.out, ceiling:false},
+    {name:'PIFO', sub:'proceeds first out', val:P.out, ceiling:false},
+    {name:'Pro-rata', sub:'proportional share', val:R.out, ceiling:false},
+    {name:'LIBR', sub:'ceiling · remaining', val:B.remain, ceiling:true},
+  ];
+  const mEl=document.getElementById('methods'); mEl.innerHTML='';
+  rows.forEach(r=>{
+    const pct=Math.min(100, maxV? (r.val/maxV*100):0);
+    const div=document.createElement('div'); div.className='mrow';
+    div.innerHTML=`<div class="mname">${r.name}<small>${r.sub}</small></div>
+      <div class="bar ${r.ceiling?'ceiling':''}"><div class="fill" style="width:${pct}%"></div></div>
+      <div class="mval">${fmt(r.val)}</div>`;
+    mEl.appendChild(div);
+  });
+  renderNote(F,L,P,R,B,vin);
+}
+
+function renderNote(F,L,P,R,B,vin){
+  const n=document.getElementById('note');
+  const vals=[F.out,L.out,P.out,R.out];
+  const allSame = vals.every(v=>Math.abs(v-vals[0])<1)&&Math.abs(P.out-F.out)<1;
+  if(vin===0){ n.innerHTML='Tag at least one deposit as <b>victim (traced)</b> to see how each method attributes it.'; return; }
+  if(Math.abs(P.out-F.out)>1){
+    n.innerHTML=`Notice <b>PIFO ≠ FIFO</b> here: PIFO attributes <span class="hl">${fmt(P.out)}</span> of the victim's funds to the money that left, FIFO attributes <span class="hl">${fmt(F.out)}</span>. Same facts, different theory, different number — which is why the method choice is an <b>investigative and legal judgment</b>, documented and defended, not a mechanical default. <b>LIBR</b> answers a different question: the <b>ceiling</b> on traced funds that could remain (<span class="hl">${fmt(B.remain)}</span>) — later clean deposits never replenish it.`;
+  } else if(allSame){
+    n.innerHTML=`Here every per-withdrawal method agrees (<span class="hl">${fmt(F.out)}</span> traced out) — that happens when the sequence is simple. Add a clean deposit <b>before</b> a withdrawal, or a pre-existing balance, and PIFO, FIFO, and pro-rata begin to diverge. <b>LIBR</b> shows the <b>ceiling</b> on what can remain (<span class="hl">${fmt(B.remain)}</span>).`;
+  } else {
+    n.innerHTML=`The methods diverge: FIFO <span class="hl">${fmt(F.out)}</span>, LIFO <span class="hl">${fmt(L.out)}</span>, PIFO <span class="hl">${fmt(P.out)}</span>, pro-rata <span class="hl">${fmt(R.out)}</span> traced out. <b>LIBR</b> caps traced funds remaining at <span class="hl">${fmt(B.remain)}</span> — a ceiling, not a per-withdrawal allocation. Pick the most precise method the facts support and document why.`;
+  }
+}
+
+function render(){ renderLedger(); renderResults(); }
+
+document.getElementById('addDep').onclick=()=>{ ledger.push({kind:'dep',amt:10000,tag:'victim'}); render(); };
+document.getElementById('addWd').onclick=()=>{ ledger.push({kind:'wd',amt:5000,tag:'other'}); render(); };
+document.getElementById('resetBtn').onclick=()=>{ ledger=[]; render(); };
+document.querySelectorAll('.chip-btn').forEach(b=>b.onclick=()=>loadPreset(b.dataset.preset));
+
+loadPreset('pifo');
+</script>
+</body></html>

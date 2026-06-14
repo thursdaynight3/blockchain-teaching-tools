@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UTXO Sandbox · Blockchain Teaching Tool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#ECE6D8; --paper2:#E4DCC9; --panel:#FFFDF8; --ink:#23282E; --muted:#7A8088;
+  --line:#DDD4C0; --line2:#E8E1D0;
+  --blue:#2563EB; --green:#15803D; --amber:#B45309; --red:#DC2626; --violet:#7C3AED;
+  --blue-s:#EAF1FF; --green-s:#E9F6EE; --amber-s:#FBF1E3; --red-s:#FCEBEB;
+  --disp:'Space Grotesk',sans-serif; --mono:'IBM Plex Mono',monospace;
+  --sh:0 2px 4px rgba(60,50,30,.05),0 8px 24px rgba(60,50,30,.08);
+}
+*{box-sizing:border-box;}
+body{margin:0;background:
+   radial-gradient(1200px 600px at 80% -5%, #F2EDE0, transparent 55%),
+   var(--paper);
+  color:var(--ink);font-family:var(--disp);padding:26px 22px 60px;line-height:1.45;}
+.wrap{max-width:1120px;margin:0 auto;}
+header.bar{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;
+  border-bottom:2px solid var(--ink);padding-bottom:14px;margin-bottom:24px;}
+.brand{display:flex;flex-direction:column;}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);}
+h1{font-size:30px;margin:2px 0 0;font-weight:700;letter-spacing:-.01em;}
+.sub{font-size:15px;color:var(--muted);margin-top:3px;}
+button{font-family:var(--disp);cursor:pointer;border:none;border-radius:10px;font-weight:600;}
+.btn-reset{background:transparent;border:1.5px solid var(--line);color:var(--ink);padding:9px 16px;font-size:14px;}
+.btn-reset:hover{background:var(--paper2);}
+
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start;}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px 22px;box-shadow:var(--sh);}
+.panel h2{font-size:13px;font-family:var(--mono);letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);margin:0 0 14px;font-weight:600;}
+
+/* wallet */
+.balance{font-family:var(--mono);font-size:13px;color:var(--muted);margin-bottom:14px;}
+.balance b{color:var(--ink);font-size:16px;}
+.utxos{display:flex;flex-wrap:wrap;gap:10px;}
+.utxo{position:relative;border:1.5px solid var(--blue);background:var(--blue-s);color:var(--blue);
+  border-radius:12px;padding:12px 14px;cursor:pointer;min-width:120px;transition:transform .12s,box-shadow .12s;
+  user-select:none;}
+.utxo:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(37,99,235,.18);}
+.utxo .amt{font-family:var(--mono);font-size:18px;font-weight:600;}
+.utxo .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;opacity:.7;margin-top:2px;}
+.utxo.sel{background:var(--blue);color:#fff;border-color:var(--blue);box-shadow:0 6px 16px rgba(37,99,235,.32);}
+.utxo.sel .tag{opacity:.85;}
+.utxo .chk{position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;background:var(--blue);
+  color:#fff;display:none;align-items:center;justify-content:center;font-size:13px;border:2px solid var(--panel);}
+.utxo.sel .chk{display:flex;}
+.utxo.fresh{animation:pop .5s ease;}
+@keyframes pop{0%{transform:scale(.6);opacity:0;}60%{transform:scale(1.08);}100%{transform:scale(1);opacity:1;}}
+.utxo.spend{animation:spend .55s ease forwards;}
+@keyframes spend{to{transform:translateX(40px) scale(.8);opacity:0;}}
+
+.presets{margin-top:18px;border-top:1px dashed var(--line);padding-top:14px;}
+.presets .lbl{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.preset-btns{display:flex;flex-wrap:wrap;gap:8px;}
+.chip-btn{background:var(--paper);border:1px solid var(--line);color:var(--ink);font-size:13px;padding:7px 12px;border-radius:20px;font-weight:500;}
+.chip-btn:hover{background:var(--paper2);}
+
+/* builder */
+.field{margin-bottom:14px;}
+.field label{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
+.field .inrow{display:flex;align-items:center;gap:10px;}
+.field input[type=number]{font-family:var(--mono);font-size:17px;border:1.5px solid var(--line);border-radius:10px;
+  padding:9px 12px;width:170px;background:#fff;color:var(--ink);}
+.field input:focus{outline:none;border-color:var(--blue);}
+.field .unit{font-family:var(--mono);font-size:13px;color:var(--muted);}
+
+.eq{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:16px 0;font-family:var(--mono);font-size:14px;}
+.eq .ln{display:flex;justify-content:space-between;padding:3px 0;}
+.eq .ln.tot{border-top:1px solid var(--line);margin-top:6px;padding-top:8px;font-weight:600;}
+.eq .v-in{color:var(--blue);} .eq .v-pay{color:var(--green);} .eq .v-chg{color:var(--amber);} .eq .v-fee{color:var(--red);}
+
+.msg{font-size:14px;padding:10px 14px;border-radius:10px;margin-bottom:14px;font-weight:500;}
+.msg.ok{background:var(--green-s);color:var(--green);}
+.msg.warn{background:var(--red-s);color:var(--red);}
+.btn-build{width:100%;background:var(--ink);color:#fff;padding:13px;font-size:16px;border-radius:12px;}
+.btn-build:hover{background:#000;}
+.btn-build:disabled{background:#C9C2B2;cursor:not-allowed;}
+
+/* tx diagram */
+.diagram{margin-top:22px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:var(--sh);}
+.diagram h2{font-size:13px;font-family:var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 16px;font-weight:600;}
+.flow{display:grid;grid-template-columns:1fr auto 1fr;gap:18px;align-items:center;}
+.flow .side{display:flex;flex-direction:column;gap:8px;}
+.flow .side .h{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:2px;}
+.txnode{background:var(--ink);color:#fff;border-radius:14px;padding:18px 16px;text-align:center;min-width:140px;}
+.txnode .t{font-family:var(--mono);font-size:13px;letter-spacing:.08em;opacity:.7;}
+.txnode .feeline{font-family:var(--mono);font-size:12px;color:#FCA5A5;margin-top:8px;border-top:1px solid #3a3f46;padding-top:8px;}
+.miniout{border-radius:10px;padding:9px 12px;font-family:var(--mono);font-size:14px;border:1.5px solid;}
+.miniout.pay{border-color:var(--green);background:var(--green-s);color:var(--green);}
+.miniout.chg{border-color:var(--amber);background:var(--amber-s);color:var(--amber);}
+.miniin{border-radius:10px;padding:9px 12px;font-family:var(--mono);font-size:14px;border:1.5px solid var(--blue);background:var(--blue-s);color:var(--blue);}
+.empty{color:var(--muted);font-size:13px;font-style:italic;}
+
+/* callout */
+.callout{margin-top:18px;background:var(--violet);color:#fff;border-radius:14px;padding:16px 20px;font-size:15px;line-height:1.55;}
+.callout b{font-weight:600;}
+.callout .hl{font-family:var(--mono);}
+
+/* history */
+.history{margin-top:22px;}
+.history h2{font-size:13px;font-family:var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 12px;font-weight:600;}
+.txrec{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:10px;
+  font-family:var(--mono);font-size:13px;display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;box-shadow:var(--sh);}
+.txrec .ix{color:var(--muted);}
+.txrec .seg b{font-weight:600;}
+.txrec .in-c{color:var(--blue);} .txrec .pay-c{color:var(--green);} .txrec .chg-c{color:var(--amber);} .txrec .fee-c{color:var(--red);}
+.arrow{color:var(--muted);}
+footer{margin-top:36px;text-align:center;font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;}
+
+@media(max-width:880px){.cols{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="bar">
+    <div class="brand">
+      <span class="eyebrow">Blockchain Investigation · Teaching Tool</span>
+      <h1>UTXO Sandbox</h1>
+      <span class="sub">Bitcoin spends whole outputs — not balances. Build a transaction and watch the change appear.</span>
+    </div>
+    <button class="btn-reset" id="resetBtn">↺ Reset wallet</button>
+  </header>
+
+  <div class="cols">
+    <!-- WALLET -->
+    <div class="panel">
+      <h2>Your wallet · the UTXO set</h2>
+      <div class="balance">spendable balance &nbsp; <b id="bal">0</b> BTC &nbsp;·&nbsp; <span id="utxoCount">0</span> outputs</div>
+      <div class="utxos" id="utxos"></div>
+      <div class="presets">
+        <div class="lbl">Load a scenario</div>
+        <div class="preset-btns">
+          <button class="chip-btn" data-preset="simple">Simple payment</button>
+          <button class="chip-btn" data-preset="needsTwo">Payment needs 2 inputs</button>
+          <button class="chip-btn" data-preset="consolidate">Consolidation</button>
+          <button class="chip-btn" data-preset="exact">Exact-change</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- BUILDER -->
+    <div class="panel">
+      <h2>Build a transaction</h2>
+      <div class="field">
+        <label>Pay to recipient</label>
+        <div class="inrow"><input type="number" id="pay" min="0" step="0.001" value="0.03"><span class="unit">BTC</span></div>
+      </div>
+      <div class="field">
+        <label>Network fee</label>
+        <div class="inrow"><input type="number" id="fee" min="0" step="0.00001" value="0.00002"><span class="unit">BTC &nbsp;(<span id="feeSat">2,000</span> sats)</span></div>
+      </div>
+      <div class="eq" id="eq"></div>
+      <div class="msg" id="msg"></div>
+      <button class="btn-build" id="buildBtn">Build &amp; broadcast →</button>
+    </div>
+  </div>
+
+  <!-- LIVE DIAGRAM -->
+  <div class="diagram">
+    <h2>This transaction</h2>
+    <div class="flow">
+      <div class="side" id="inSide"><span class="h">Inputs (selected UTXOs)</span></div>
+      <div class="txnode"><div class="t">BITCOIN TX</div><div id="txbody" style="font-size:13px;margin-top:6px;">select inputs →</div><div class="feeline" id="txfee">fee —</div></div>
+      <div class="side" id="outSide"><span class="h">Outputs (created)</span></div>
+    </div>
+    <div class="callout" id="callout">Select one or more UTXOs from your wallet, set a payment amount, and build the transaction. Watch what happens to the value you didn't spend.</div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="history">
+    <h2>Transaction history · the chain</h2>
+    <div id="history"><div class="empty" style="font-family:var(--mono);color:var(--muted);font-size:13px;">No transactions yet.</div></div>
+  </div>
+
+  <footer>Illustrative amounts · for instruction only · fee = inputs − outputs</footer>
+</div>
+
+<script>
+const SAT = 100000000;
+let uid = 1;
+let wallet = [];          // {id, sats, origin}
+let selected = new Set();
+let history = [];
+
+const PRESETS = {
+  simple:      [0.05, 0.10, 0.022, 0.50, 0.013, 0.075],
+  needsTwo:    [0.04, 0.04, 0.04, 0.02, 0.01],
+  consolidate: [0.011, 0.013, 0.009, 0.014, 0.008, 0.012, 0.010],
+  exact:       [0.03, 0.07, 0.10, 0.05],
+};
+const PRESET_DEFAULTS = {
+  simple:{pay:0.03,fee:0.00002}, needsTwo:{pay:0.07,fee:0.00002},
+  consolidate:{pay:0.075,fee:0.00003}, exact:{pay:0.03,fee:0}
+};
+
+function btc(sats){ let s=(sats/SAT).toFixed(8); s=s.replace(/0+$/,'').replace(/\.$/,''); return s===''?'0':s; }
+function commas(n){ return n.toLocaleString('en-US'); }
+function toSats(btcVal){ return Math.round(parseFloat(btcVal||0)*SAT); }
+
+function loadPreset(name){
+  wallet = PRESETS[name].map(v=>({id:uid++, sats:Math.round(v*SAT), origin:'initial'}));
+  selected.clear();
+  const d=PRESET_DEFAULTS[name]; document.getElementById('pay').value=d.pay; document.getElementById('fee').value=d.fee;
+  history=[]; renderHistory();
+  renderAll();
+}
+
+function renderWallet(){
+  const el=document.getElementById('utxos'); el.innerHTML='';
+  let total=0;
+  wallet.forEach(u=>{
+    total+=u.sats;
+    const d=document.createElement('div');
+    d.className='utxo'+(selected.has(u.id)?' sel':'')+(u._fresh?' fresh':'');
+    d.innerHTML=`<div class="amt">${btc(u.sats)}</div><div class="tag">BTC · ${u.origin==='change'?'change':'utxo'}</div><div class="chk">✓</div>`;
+    d.onclick=()=>{ selected.has(u.id)?selected.delete(u.id):selected.add(u.id); renderAll(); };
+    el.appendChild(d);
+    u._fresh=false;
+  });
+  document.getElementById('bal').textContent=btc(total);
+  document.getElementById('utxoCount').textContent=wallet.length;
+}
+
+function selectedSats(){ return wallet.filter(u=>selected.has(u.id)).reduce((s,u)=>s+u.sats,0); }
+
+function renderBuilder(){
+  const inS=selectedSats();
+  const paySat=toSats(document.getElementById('pay').value);
+  const feeSat=toSats(document.getElementById('fee').value);
+  document.getElementById('feeSat').textContent=commas(feeSat);
+  const change=inS-paySat-feeSat;
+  const eq=document.getElementById('eq');
+  eq.innerHTML=`
+    <div class="ln"><span>inputs selected</span><span class="v-in">${btc(inS)}</span></div>
+    <div class="ln"><span>− payment</span><span class="v-pay">${btc(paySat)}</span></div>
+    <div class="ln"><span>− change (back to you)</span><span class="v-chg">${change>0?btc(change):'0'}</span></div>
+    <div class="ln tot"><span>= fee (to miner)</span><span class="v-fee">${btc(feeSat)}</span></div>`;
+  const msg=document.getElementById('msg'), btn=document.getElementById('buildBtn');
+  let valid=false;
+  if(inS===0){ msg.className='msg warn'; msg.textContent='Select at least one UTXO to spend.'; }
+  else if(paySat<=0){ msg.className='msg warn'; msg.textContent='Enter a payment amount greater than 0.'; }
+  else if(inS < paySat+feeSat){
+    msg.className='msg warn';
+    msg.textContent=`Selected inputs (${btc(inS)}) don't cover payment + fee (${btc(paySat+feeSat)}). You can't spend part of a UTXO — select more.`;
+  } else { msg.className='msg ok'; msg.textContent= change>0
+      ? `Valid. The whole ${btc(inS)} is consumed; ${btc(change)} returns to you as a new change output.`
+      : `Valid. Exact spend — no change output is created.`; valid=true; }
+  btn.disabled=!valid;
+  renderDiagram(inS,paySat,feeSat,change,valid);
+  renderCallout(inS,paySat,feeSat,change,valid);
+}
+
+function renderDiagram(inS,paySat,feeSat,change,valid){
+  const inSide=document.getElementById('inSide');
+  inSide.innerHTML='<span class="h">Inputs (selected UTXOs)</span>';
+  const sel=wallet.filter(u=>selected.has(u.id));
+  if(!sel.length) inSide.innerHTML+='<div class="empty">none selected</div>';
+  sel.forEach(u=> inSide.innerHTML+=`<div class="miniin">${btc(u.sats)} BTC</div>`);
+  document.getElementById('txbody').textContent = inS? `Σ inputs = ${btc(inS)}` : 'select inputs →';
+  document.getElementById('txfee').textContent = feeSat!==undefined? `fee ${btc(feeSat)}`:'fee —';
+  const outSide=document.getElementById('outSide');
+  outSide.innerHTML='<span class="h">Outputs (created)</span>';
+  if(valid){
+    outSide.innerHTML+=`<div class="miniout pay">${btc(paySat)} → recipient</div>`;
+    if(change>0) outSide.innerHTML+=`<div class="miniout chg">${btc(change)} → change (you)</div>`;
+  } else { outSide.innerHTML+='<div class="empty">—</div>'; }
+}
+
+function renderCallout(inS,paySat,feeSat,change,valid){
+  const c=document.getElementById('callout');
+  if(!valid){ 
+    if(inS>0 && paySat>0 && inS<paySat+feeSat)
+      c.innerHTML=`<b>This is the core UTXO rule.</b> A single output can't be split. To pay <span class="hl">${btc(paySat)}</span> you must select whole UTXOs that together cover the payment plus fee — then the leftover comes back as <b>change</b>.`;
+    else c.innerHTML='Select one or more UTXOs, set a payment, and build. Watch what happens to the value you didn\u2019t spend.';
+    return;
+  }
+  if(change>0){
+    const sel=wallet.filter(u=>selected.has(u.id));
+    const big = sel.length===1;
+    c.innerHTML = big
+      ? `You\u2019re spending one <span class="hl">${btc(inS)}</span> output to pay <span class="hl">${btc(paySat)}</span>. The other <span class="hl">${btc(change)}</span> doesn\u2019t stay put — the <b>entire</b> ${btc(inS)} is consumed and ${btc(change)} returns to a <b>new</b> change output. <b>Fee = inputs − outputs.</b>`
+      : `You selected <span class="hl">${sel.length}</span> UTXOs totalling <span class="hl">${btc(inS)}</span>. All of them are consumed; the chain creates a payment output and a <b>change</b> output of <span class="hl">${btc(change)}</span>. <b>Fee = inputs − outputs.</b>`;
+  } else {
+    c.innerHTML=`Exact spend: inputs equal payment + fee, so <b>no change output</b> is created. The whole selected amount is consumed.`;
+  }
+}
+
+function build(){
+  const inS=selectedSats();
+  const paySat=toSats(document.getElementById('pay').value);
+  const feeSat=toSats(document.getElementById('fee').value);
+  const change=inS-paySat-feeSat;
+  if(inS<paySat+feeSat || paySat<=0) return;
+  // animate spend
+  document.querySelectorAll('.utxo.sel').forEach(el=>el.classList.add('spend'));
+  const consumed=wallet.filter(u=>selected.has(u.id)).map(u=>u.sats);
+  setTimeout(()=>{
+    wallet=wallet.filter(u=>!selected.has(u.id));
+    let changeId=null;
+    if(change>0){ changeId=uid++; wallet.push({id:changeId, sats:change, origin:'change', _fresh:true}); }
+    history.push({n:history.length+1, inputs:consumed, pay:paySat, change:change>0?change:0, fee:feeSat});
+    selected.clear();
+    renderAll(); renderHistory();
+  },520);
+}
+
+function renderHistory(){
+  const el=document.getElementById('history');
+  if(!history.length){ el.innerHTML='<div style="font-family:var(--mono);color:var(--muted);font-size:13px;">No transactions yet.</div>'; return; }
+  el.innerHTML='';
+  history.slice().reverse().forEach(tx=>{
+    const ins=tx.inputs.map(btc).join(' + ');
+    let outs=`<span class="seg pay-c"><b>${btc(tx.pay)}</b> pay</span>`;
+    if(tx.change>0) outs+=` <span class="seg chg-c"><b>${btc(tx.change)}</b> change</span>`;
+    const d=document.createElement('div'); d.className='txrec';
+    d.innerHTML=`<span class="ix">TX #${tx.n}</span>
+      <span class="seg in-c">${tx.inputs.length} in: ${ins}</span>
+      <span class="arrow">→</span> ${outs}
+      <span class="seg fee-c"><b>${btc(tx.fee)}</b> fee</span>`;
+    el.appendChild(d);
+  });
+}
+
+function renderAll(){ renderWallet(); renderBuilder(); }
+
+document.getElementById('pay').addEventListener('input',renderBuilder);
+document.getElementById('fee').addEventListener('input',renderBuilder);
+document.getElementById('buildBtn').addEventListener('click',build);
+document.getElementById('resetBtn').addEventListener('click',()=>loadPreset('simple'));
+document.querySelectorAll('.chip-btn').forEach(b=>b.addEventListener('click',()=>loadPreset(b.dataset.preset)));
+
+loadPreset('simple');
+</script>
+</body></html>
