@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ETH Wallet Sandbox · Blockchain Teaching Tool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#ECE6D8; --panel:#FFFDF8; --ink:#23282E; --muted:#7A8088;
+  --line:#DDD4C0; --paper2:#E4DCC9; --soft:#F4F0E6;
+  --blue:#2563EB; --green:#15803D; --amber:#B45309; --red:#DC2626; --violet:#7C3AED;
+  --blue-s:#EAF1FF; --green-s:#E9F6EE; --amber-s:#FBF1E3; --red-s:#FCEBEB; --violet-s:#F3ECFD;
+  --disp:'Space Grotesk',sans-serif; --mono:'IBM Plex Mono',monospace;
+  --sh:0 2px 4px rgba(60,50,30,.05),0 8px 24px rgba(60,50,30,.08);
+}
+*{box-sizing:border-box;}
+body{margin:0;background:radial-gradient(1200px 600px at 80% -5%, #F2EDE0, transparent 55%),var(--paper);
+  color:var(--ink);font-family:var(--disp);padding:40px 22px 60px;line-height:1.45;}
+.wrap{max-width:1120px;margin:0 auto;}
+header.topbar{position:relative;border-bottom:2px solid var(--ink);padding-bottom:16px;margin-bottom:24px;}
+header.topbar .btn-reset{position:absolute;top:0;right:0;}
+.eyebrow{display:block;font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);}
+h1{font-size:30px;margin:2px 0 0;font-weight:700;letter-spacing:-.01em;}
+.sub{display:block;font-size:15px;color:var(--muted);margin-top:3px;max-width:720px;}
+button{font-family:var(--disp);cursor:pointer;border:none;border-radius:10px;font-weight:600;}
+.btn-reset{background:transparent;border:1.5px solid var(--line);color:var(--ink);padding:9px 16px;font-size:14px;}
+.btn-reset:hover{background:var(--paper2);}
+
+.cols{display:grid;grid-template-columns:0.92fr 1.08fr;gap:22px;align-items:start;}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px 22px;box-shadow:var(--sh);}
+.panel h2{font-size:13px;font-family:var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 14px;font-weight:600;}
+
+/* wallet panel */
+.acct{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.avatar{width:34px;height:34px;border-radius:50%;background:conic-gradient(from 45deg,#7C3AED,#2563EB,#15803D,#B45309,#7C3AED);}
+.addr{font-family:var(--mono);font-size:14px;}
+.netpill{margin-left:auto;font-family:var(--mono);font-size:11px;letter-spacing:.06em;background:var(--green-s);color:var(--green);
+  border:1px solid #BfE6CC;border-radius:20px;padding:4px 10px;display:inline-flex;align-items:center;gap:6px;}
+.netpill::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--green);}
+.portfolio{font-family:var(--mono);font-size:13px;color:var(--muted);margin-bottom:4px;}
+.portfolio b{color:var(--ink);font-size:26px;font-weight:600;letter-spacing:-.01em;}
+
+.assetlist{display:flex;flex-direction:column;gap:8px;margin-top:14px;}
+.asset{display:flex;align-items:center;gap:12px;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:11px 14px;}
+.coin{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-weight:600;font-size:11px;color:#fff;flex:none;}
+.asset .nm{display:flex;flex-direction:column;}
+.asset .nm .s{font-weight:600;font-size:15px;}
+.asset .nm .n{font-size:12px;color:var(--muted);}
+.asset .bal{margin-left:auto;text-align:right;}
+.asset .bal .q{font-family:var(--mono);font-size:15px;font-weight:600;}
+.asset .bal .u{font-family:var(--mono);font-size:12px;color:var(--muted);}
+.asset.gasless{box-shadow:0 0 0 1.5px var(--red);}
+
+.presets{margin-top:16px;border-top:1px dashed var(--line);padding-top:14px;}
+.presets .lbl{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.preset-btns{display:flex;flex-wrap:wrap;gap:8px;}
+.chip-btn{background:var(--paper);border:1px solid var(--line);color:var(--ink);font-size:12.5px;padding:7px 11px;border-radius:20px;font-weight:500;}
+.chip-btn:hover{background:var(--paper2);}
+
+/* action panel */
+.tabs{display:flex;gap:6px;margin-bottom:18px;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:5px;}
+.tab{flex:1;text-align:center;padding:9px;border-radius:9px;font-size:14px;font-weight:600;color:var(--muted);background:transparent;}
+.tab.active{background:var(--panel);color:var(--ink);box-shadow:var(--sh);}
+
+.field{margin-bottom:14px;}
+.field label{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
+.field .inrow{display:flex;align-items:center;gap:8px;}
+input[type=text],input[type=number],select{font-family:var(--mono);font-size:15px;border:1.5px solid var(--line);border-radius:10px;
+  padding:10px 12px;background:#fff;color:var(--ink);width:100%;}
+input:focus,select:focus{outline:none;border-color:var(--blue);}
+.amtwrap{position:relative;}
+.maxbtn{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:var(--blue-s);color:var(--blue);
+  font-size:11px;font-weight:600;padding:4px 9px;border-radius:7px;}
+.usd{font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:5px;}
+
+.swaparrow{display:flex;justify-content:center;margin:6px 0;color:var(--muted);}
+.swaparrow svg{width:22px;height:22px;}
+.rateline{font-family:var(--mono);font-size:13px;color:var(--muted);background:var(--soft);border:1px solid var(--line);
+  border-radius:10px;padding:10px 12px;margin:8px 0;}
+.rateline .fee{color:var(--amber);}
+
+.gasbox{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:13px;color:var(--ink);
+  background:var(--amber-s);border:1px solid #EAD6B0;border-radius:10px;padding:10px 12px;margin:12px 0;}
+.gasbox svg{width:16px;height:16px;color:var(--amber);}
+.gasbox .lbl{color:var(--muted);} .gasbox b{margin-left:auto;}
+
+.stepper{display:flex;gap:10px;margin:12px 0;}
+.btn-act{flex:1;background:var(--ink);color:#fff;padding:13px;font-size:15px;border-radius:12px;}
+.btn-act:hover{background:#000;}
+.btn-act:disabled{background:#C9C2B2;cursor:not-allowed;}
+.btn-act.done{background:var(--green-s);color:var(--green);cursor:default;border:1.5px solid #BfE6CC;}
+.btn-act.violet{background:var(--violet);} .btn-act.violet:hover{background:#6D28D9;}
+
+.msg{font-size:13.5px;padding:10px 13px;border-radius:10px;margin:6px 0 12px;font-weight:500;}
+.msg.warn{background:var(--red-s);color:var(--red);}
+.msg.ok{background:var(--green-s);color:var(--green);}
+
+/* activity */
+.actlist{display:flex;flex-direction:column;gap:9px;}
+.actrow{display:flex;align-items:center;gap:12px;background:var(--soft);border:1px solid var(--line);border-radius:11px;padding:10px 13px;font-size:13.5px;}
+.actrow .ic{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex:none;font-size:15px;}
+.actrow .ic.send{background:var(--blue-s);color:var(--blue);} .actrow .ic.approve{background:var(--violet-s);color:var(--violet);}
+.actrow .ic.swap{background:var(--green-s);color:var(--green);}
+.actrow .det{display:flex;flex-direction:column;}
+.actrow .det .t{font-weight:600;} .actrow .det .s{font-family:var(--mono);font-size:11.5px;color:var(--muted);}
+.actrow .g{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--amber);text-align:right;}
+.empty{font-family:var(--mono);font-size:13px;color:var(--muted);}
+
+/* callout */
+.callout{margin-top:18px;background:var(--violet);color:#fff;border-radius:14px;padding:16px 20px;font-size:14.5px;line-height:1.55;}
+.callout b{font-weight:600;} .callout .hl{font-family:var(--mono);}
+.callout.warn{background:var(--red);}
+
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(20,16,10,.5);display:none;align-items:center;justify-content:center;z-index:100;padding:20px;}
+.overlay.show{display:flex;}
+.modal{background:var(--panel);border-radius:18px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;}
+.modal .mhead{background:var(--ink);color:#fff;padding:16px 20px;font-weight:600;font-size:16px;display:flex;align-items:center;gap:8px;}
+.modal .mbody{padding:20px;}
+.mline{display:flex;justify-content:space-between;padding:8px 0;font-size:14px;border-bottom:1px solid var(--line);}
+.mline:last-of-type{border-bottom:none;}
+.mline .k{color:var(--muted);} .mline .v{font-family:var(--mono);font-weight:500;text-align:right;}
+.mwarn{background:var(--violet-s);color:#5B21B6;border-radius:10px;padding:11px 13px;font-size:12.5px;margin-top:12px;line-height:1.5;}
+.mbtns{display:flex;gap:10px;margin-top:18px;}
+.mbtns button{flex:1;padding:12px;font-size:15px;border-radius:11px;}
+.btn-reject{background:var(--soft);border:1.5px solid var(--line);color:var(--ink);}
+.btn-confirm{background:var(--ink);color:#fff;}
+.btn-confirm:hover{background:#000;}
+
+footer{margin-top:36px;text-align:center;font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;}
+@media(max-width:880px){.cols{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar">
+    <span class="eyebrow">Blockchain Investigation · Teaching Tool</span>
+    <h1>ETH Wallet Sandbox</h1>
+    <span class="sub">A practice wallet for the Ethereum account model. Send ETH, send tokens, and swap on a DEX — and watch gas come out of your ETH every time. No real wallet, no real funds.</span>
+    <button class="btn-reset" id="resetBtn">↺ Reset</button>
+  </header>
+
+  <div class="cols">
+    <!-- WALLET -->
+    <div class="panel">
+      <h2>Your wallet</h2>
+      <div class="acct">
+        <div class="avatar"></div>
+        <span class="addr" id="addr">0x71C2…3a8E</span>
+        <span class="netpill">Ethereum</span>
+      </div>
+      <div class="portfolio">total value &nbsp; <b id="portfolio">$0</b></div>
+      <div class="assetlist" id="assets"></div>
+      <div class="presets">
+        <div class="lbl">Load a wallet</div>
+        <div class="preset-btns">
+          <button class="chip-btn" data-preset="starter">Starter wallet</button>
+          <button class="chip-btn" data-preset="gaspoor">Token-rich, gas-poor</button>
+          <button class="chip-btn" data-preset="fresh">Fresh (ETH only)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="panel">
+      <div class="tabs">
+        <button class="tab active" data-tab="send">Send</button>
+        <button class="tab" data-tab="swap">Swap</button>
+        <button class="tab" data-tab="activity">Activity</button>
+      </div>
+
+      <!-- SEND -->
+      <div class="tabpane" id="pane-send">
+        <div class="field">
+          <label>Asset</label>
+          <select id="sendAsset"></select>
+        </div>
+        <div class="field">
+          <label>Recipient address</label>
+          <input type="text" id="sendTo" value="0x4E83…b219" spellcheck="false">
+        </div>
+        <div class="field">
+          <label>Amount</label>
+          <div class="amtwrap">
+            <input type="number" id="sendAmt" min="0" step="0.0001" value="0.5">
+            <button class="maxbtn" id="sendMax">MAX</button>
+          </div>
+          <div class="usd" id="sendUsd"></div>
+        </div>
+        <div class="gasbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 11h1a2 2 0 0 1 2 2v3a1.5 1.5 0 0 0 3 0V9.5a2 2 0 0 0-.6-1.4L17 5"/><path d="M3 21V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v16"/><path d="M2 21h14"/><path d="M6 8h4"/></svg><span class="lbl">estimated gas</span> <b id="sendGas">—</b></div>
+        <div class="msg" id="sendMsg" style="display:none;"></div>
+        <button class="btn-act" id="sendBtn">Review send</button>
+      </div>
+
+      <!-- SWAP -->
+      <div class="tabpane" id="pane-swap" style="display:none;">
+        <div class="field">
+          <label>From</label>
+          <div class="inrow"><select id="swapFrom" style="flex:0 0 130px;"></select>
+            <input type="number" id="swapAmt" min="0" step="0.0001" value="1000"></div>
+          <div class="usd" id="swapFromUsd"></div>
+        </div>
+        <div class="swaparrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg></div>
+        <div class="field">
+          <label>To (estimated)</label>
+          <div class="inrow"><select id="swapTo" style="flex:0 0 130px;"></select>
+            <input type="text" id="swapOut" readonly style="background:var(--soft);"></div>
+          <div class="usd" id="swapToUsd"></div>
+        </div>
+        <div class="rateline" id="rateLine"></div>
+        <div class="gasbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 11h1a2 2 0 0 1 2 2v3a1.5 1.5 0 0 0 3 0V9.5a2 2 0 0 0-.6-1.4L17 5"/><path d="M3 21V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v16"/><path d="M2 21h14"/><path d="M6 8h4"/></svg><span class="lbl" id="swapGasLbl">estimated gas</span> <b id="swapGas">—</b></div>
+        <div class="msg" id="swapMsg" style="display:none;"></div>
+        <div class="stepper" id="swapStepper"></div>
+      </div>
+
+      <!-- ACTIVITY -->
+      <div class="tabpane" id="pane-activity" style="display:none;">
+        <div class="actlist" id="activity"><div class="empty">No transactions yet.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout" id="callout">This is a practice wallet. Try sending ETH, sending a token, or swapping on the DEX — and watch what happens to your ETH balance each time.</div>
+
+  <footer>Illustrative prices &amp; balances · for instruction only · gas is always paid in ETH</footer>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="mhead">🦊 Confirm transaction</div>
+    <div class="mbody">
+      <div id="modalLines"></div>
+      <div class="mwarn" id="modalWarn" style="display:none;"></div>
+      <div class="mbtns">
+        <button class="btn-reject" id="rejectBtn">Reject</button>
+        <button class="btn-confirm" id="confirmBtn">Confirm</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const U = 1e6; // micro-units: store all balances as integers of 1e-6
+const TOKENS = {
+  ETH:  {sym:'ETH',  name:'Ether',           price:3000,  dp:4, color:'#627EEA', native:true},
+  WETH: {sym:'WETH', name:'Wrapped Ether',   price:3000,  dp:4, color:'#E8833A'},
+  USDC: {sym:'USDC', name:'USD Coin',        price:1,     dp:2, color:'#2775CA'},
+  WBTC: {sym:'WBTC', name:'Wrapped Bitcoin', price:90000, dp:5, color:'#F09242'},
+  DAI:  {sym:'DAI',  name:'Dai Stablecoin',  price:1,     dp:2, color:'#F5AC37'},
+};
+const ORDER = ['ETH','WETH','USDC','WBTC','DAI'];
+const GAS = { send:400, sendToken:800, approve:600, swap:1500 }; // in micro-ETH
+const SWAP_FEE = 0.003; // 0.3%
+
+const PRESETS = {
+  starter: {ETH:2*U, WETH:3*U, USDC:5000*U, WBTC:Math.round(0.5*U), DAI:2000*U},
+  gaspoor: {ETH:Math.round(0.00015*U), WETH:0, USDC:8000*U, WBTC:Math.round(0.25*U), DAI:0},
+  fresh:   {ETH:Math.round(1.5*U), WETH:0, USDC:0, WBTC:0, DAI:0},
+};
+
+let bal = {};            // symbol -> micro balance
+let approved = new Set();// tokens approved for the router
+let activity = [];
+let activeTab = 'send';
+
+// ---------- helpers ----------
+function fmtQty(micro, sym){ const t=TOKENS[sym]; let v=micro/U; let s=v.toFixed(t.dp); s=s.replace(/(\.\d*?)0+$/,'$1').replace(/\.$/,''); return s; }
+function usdNum(micro, sym){ return micro/U * TOKENS[sym].price; }
+function fmtUSD(n){ if(n>=1) return '$'+n.toLocaleString('en-US',{maximumFractionDigits:2}); return '$'+n.toLocaleString('en-US',{maximumFractionDigits:4}); }
+function toMicro(v){ return Math.round(parseFloat(v||0)*U); }
+function ethGasUSD(gasMicro){ return fmtUSD(usdNum(gasMicro,'ETH')); }
+
+function loadPreset(name){ bal={}; ORDER.forEach(s=>bal[s]=PRESETS[name][s]||0); approved=new Set(); activity=[]; render(); setCallout(presetCallout(name)); }
+function presetCallout(name){
+  if(name==='gaspoor') return `<b>Token-rich, gas-poor.</b> This wallet holds <span class="hl">${fmtQty(bal.USDC,'USDC')} USDC</span> and <span class="hl">${fmtQty(bal.WBTC,'WBTC')} WBTC</span> — but almost no ETH. Try to send the USDC and watch what happens: <b>gas is paid in ETH</b>, so without it, the tokens are stranded.`;
+  if(name==='fresh') return `<b>Fresh wallet.</b> Just ETH, no tokens yet. Try sending some ETH, or swap ETH for a token on the DEX.`;
+  return `<b>Starter wallet.</b> Some ETH for gas plus a few ERC-20 tokens. Send ETH, send a token, or swap — and watch gas come out of your ETH each time.`;
+}
+
+// ---------- render wallet ----------
+function render(){ renderWallet(); renderSendOpts(); renderSwapOpts(); renderSend(); renderSwap(); renderActivity(); }
+function renderWallet(){
+  const el=document.getElementById('assets'); el.innerHTML='';
+  let total=0;
+  ORDER.forEach(s=>{
+    const t=TOKENS[s]; const m=bal[s]||0; total+=usdNum(m,s);
+    const gasless = (s!=='ETH' && m>0 && bal.ETH < GAS.sendToken);
+    const row=document.createElement('div'); row.className='asset'+(gasless?' gasless':'');
+    row.innerHTML=`<div class="coin" style="background:${t.color}">${s==='ETH'?'Ξ':s.slice(0,2)}</div>
+      <div class="nm"><span class="s">${t.sym}</span><span class="n">${t.name}</span></div>
+      <div class="bal"><div class="q">${fmtQty(m,s)}</div><div class="u">${fmtUSD(usdNum(m,s))}</div></div>`;
+    el.appendChild(row);
+  });
+  document.getElementById('portfolio').textContent=fmtUSD(total);
+}
+function opt(sym,sel){ return `<option value="${sym}" ${sym===sel?'selected':''}>${sym}</option>`; }
+function renderSendOpts(){
+  const sel=document.getElementById('sendAsset'); const cur=sel.value||'ETH';
+  sel.innerHTML=ORDER.map(s=>opt(s,cur)).join('');
+}
+function renderSwapOpts(){
+  const f=document.getElementById('swapFrom'), t=document.getElementById('swapTo');
+  const fc=f.value||'USDC', tc=t.value||'WETH';
+  f.innerHTML=ORDER.map(s=>opt(s,fc)).join('');
+  t.innerHTML=ORDER.map(s=>opt(s,tc)).join('');
+}
+
+// ---------- SEND ----------
+function renderSend(){
+  const asset=document.getElementById('sendAsset').value;
+  const amt=document.getElementById('sendAmt').value;
+  const m=toMicro(amt);
+  document.getElementById('sendUsd').textContent='≈ '+fmtUSD(usdNum(m,asset));
+  const gas = asset==='ETH'?GAS.send:GAS.sendToken;
+  document.getElementById('sendGas').textContent=`${fmtQty(gas,'ETH')} ETH (${ethGasUSD(gas)})`;
+  const msg=document.getElementById('sendMsg'), btn=document.getElementById('sendBtn');
+  let err=null;
+  if(m<=0) err='Enter an amount greater than 0.';
+  else if(bal.ETH < gas) err=`Not enough ETH for gas. You hold ${fmtQty(bal[asset],asset)} ${asset}, but gas is paid in ETH — and you have ${fmtQty(bal.ETH,'ETH')} ETH. ${asset==='ETH'?'':'The '+asset+' cannot move without ETH for gas.'}`;
+  else if(asset==='ETH' && bal.ETH < m+gas) err=`Amount + gas (${fmtQty(m+gas,'ETH')} ETH) exceeds your ETH balance.`;
+  else if(asset!=='ETH' && bal[asset] < m) err=`You only hold ${fmtQty(bal[asset],asset)} ${asset}.`;
+  if(err){ msg.style.display='block'; msg.className='msg warn'; msg.textContent=err; btn.disabled=true; }
+  else { msg.style.display='none'; btn.disabled=false; }
+}
+
+function reviewSend(){
+  const asset=document.getElementById('sendAsset').value;
+  const to=document.getElementById('sendTo').value;
+  const m=toMicro(document.getElementById('sendAmt').value);
+  const gas = asset==='ETH'?GAS.send:GAS.sendToken;
+  const lines=[
+    ['Action', asset==='ETH'?'Send ETH':'Send '+asset+' (ERC-20)'],
+    ['To', to],
+    ['Amount', `${fmtQty(m,asset)} ${asset}`],
+    ['Estimated gas', `${fmtQty(gas,'ETH')} ETH (${ethGasUSD(gas)})`],
+  ];
+  let warn = asset==='ETH' ? null
+    : `This calls the <b>${asset} token contract</b> to update its ledger — the transaction's “To” is the contract, not the recipient. Gas is still paid in ETH.`;
+  openModal(asset==='ETH'?'Send ETH':'Send '+asset, lines, warn, ()=>{
+    bal[asset]-=m; bal.ETH-=gas;
+    activity.unshift({type:'send', title:(asset==='ETH'?'Sent ETH':'Sent '+asset), sub:`${fmtQty(m,asset)} ${asset} → ${to}`, gas});
+    render();
+    setCallout(asset==='ETH'
+      ? `<b>Account model.</b> Your ETH balance dropped directly by the amount sent plus gas — <b>no UTXOs, no change output</b>. Gas (<span class="hl">${fmtQty(gas,'ETH')} ETH</span>) was paid separately from the amount.`
+      : `<b>You moved an ERC-20.</b> Under the hood you called the <span class="hl">${asset}</span> contract, which updated its internal ledger to credit the recipient. On a block explorer the transaction's “To” is the <b>${asset} contract</b>, not the recipient — and gas came out of your <b>ETH</b>, not your ${asset}.`);
+  });
+}
+
+// ---------- SWAP ----------
+function swapQuote(){
+  const from=document.getElementById('swapFrom').value;
+  const to=document.getElementById('swapTo').value;
+  const inM=toMicro(document.getElementById('swapAmt').value);
+  let outM=0;
+  if(from!==to && inM>0){ outM=Math.round(inM*TOKENS[from].price/TOKENS[to].price*(1-SWAP_FEE)); }
+  return {from,to,inM,outM};
+}
+function renderSwap(){
+  const {from,to,inM,outM}=swapQuote();
+  document.getElementById('swapOut').value=outM?fmtQty(outM,to):'0';
+  document.getElementById('swapFromUsd').textContent='≈ '+fmtUSD(usdNum(inM,from));
+  document.getElementById('swapToUsd').textContent='≈ '+fmtUSD(usdNum(outM,to));
+  const rate = TOKENS[from].price/TOKENS[to].price;
+  document.getElementById('rateLine').innerHTML = from===to
+    ? 'Pick two different tokens to swap.'
+    : `1 ${from} ≈ ${(rate).toLocaleString('en-US',{maximumFractionDigits:6})} ${to} &nbsp;·&nbsp; <span class="fee">DEX fee 0.30%</span>`;
+  // gas + stepper depend on whether approval is needed
+  const needsApproval = from!=='ETH' && !approved.has(from);
+  const totalGas = needsApproval ? (GAS.approve+GAS.swap) : GAS.swap;
+  document.getElementById('swapGasLbl').textContent = needsApproval ? 'estimated gas (approve + swap)' : 'estimated gas';
+  document.getElementById('swapGas').textContent=`${fmtQty(totalGas,'ETH')} ETH (${ethGasUSD(totalGas)})`;
+  const msg=document.getElementById('swapMsg');
+  let err=null;
+  if(from===to) err='Choose two different tokens.';
+  else if(inM<=0) err='Enter an amount greater than 0.';
+  else if(bal[from] < inM) err=`You only hold ${fmtQty(bal[from],from)} ${from}.`;
+  else if(bal.ETH < totalGas) err=`Not enough ETH for gas (need ${fmtQty(totalGas,'ETH')} ETH${needsApproval?', approve + swap':''}). Gas is paid in ETH.`;
+  if(err){ msg.style.display='block'; msg.className='msg warn'; msg.textContent=err; }
+  else msg.style.display='none';
+  // stepper
+  const st=document.getElementById('swapStepper'); st.innerHTML='';
+  const blocked=!!err;
+  if(needsApproval){
+    const b1=document.createElement('button'); b1.className='btn-act violet'; b1.textContent='1 · Approve '+from;
+    b1.disabled=blocked; b1.onclick=reviewApprove;
+    const b2=document.createElement('button'); b2.className='btn-act'; b2.textContent='2 · Swap'; b2.disabled=true;
+    st.appendChild(b1); st.appendChild(b2);
+  } else {
+    const b=document.createElement('button'); b.className='btn-act'; b.textContent= from==='ETH'?'Swap':'Swap '+from+' → '+to;
+    b.disabled=blocked; b.onclick=reviewSwap; st.appendChild(b);
+    if(from!=='ETH' && approved.has(from)){
+      const tag=document.createElement('div'); tag.style.cssText='flex:0 0 auto;align-self:center;font-family:var(--mono);font-size:11px;color:var(--green);';
+      tag.textContent='✓ approved'; st.appendChild(tag);
+    }
+  }
+}
+function reviewApprove(){
+  const from=document.getElementById('swapFrom').value;
+  const lines=[
+    ['Action','Approve (ERC-20)'],
+    ['Token', from],
+    ['Spender','DEX Router 0x7a25…D9F2'],
+    ['Permission', `Allow router to spend your ${from}`],
+    ['Estimated gas', `${fmtQty(GAS.approve,'ETH')} ETH (${ethGasUSD(GAS.approve)})`],
+  ];
+  const warn=`<b>This is an approval, not a transfer — nothing moves yet.</b> You're granting the router permission to pull your ${from} later. ⚠ This is exactly the step wallet <b>drainers</b> abuse: a malicious site requests approval, then calls <span class="hl">transferFrom</span> to empty the wallet.`;
+  openModal('Approve '+from, lines, warn, ()=>{
+    bal.ETH-=GAS.approve; approved.add(from);
+    activity.unshift({type:'approve', title:'Approved '+from, sub:`router may spend your ${from}`, gas:GAS.approve});
+    render();
+    setCallout(`<b>Approval granted.</b> No tokens moved — you only authorized the router to spend your <span class="hl">${from}</span>. Now the swap can pull the tokens. That's the <b>two-step on-chain footprint</b>: an <b>approve</b> transaction, then the <b>swap</b>. Both paid gas in ETH. <br>⚠ A drainer relies on you approving a contract you shouldn't, then calling <span class="hl">transferFrom</span>.`);
+  });
+}
+function reviewSwap(){
+  const {from,to,inM,outM}=swapQuote();
+  const lines=[
+    ['Action','Swap on DEX'],
+    ['You pay', `${fmtQty(inM,from)} ${from}`],
+    ['You receive', `≈ ${fmtQty(outM,to)} ${to}`],
+    ['Rate', `1 ${from} ≈ ${(TOKENS[from].price/TOKENS[to].price).toLocaleString('en-US',{maximumFractionDigits:6})} ${to}`],
+    ['DEX fee','0.30%'],
+    ['Estimated gas', `${fmtQty(GAS.swap,'ETH')} ETH (${ethGasUSD(GAS.swap)})`],
+  ];
+  const warn = from!=='ETH'
+    ? `The router uses the <b>approval</b> you granted to pull your ${from} (<span class="hl">transferFrom</span>), then sends you ${to}.`
+    : `Swapping <b>native ETH</b> doesn't need an ERC-20 approval — ETH isn't a token, so it's sent directly with the swap. Swapping a <b>token</b> would require the approval step first.`;
+  openModal('Confirm swap', lines, warn, ()=>{
+    bal[from]-=inM; bal[to]=(bal[to]||0)+outM; bal.ETH-=GAS.swap;
+    activity.unshift({type:'swap', title:`Swapped ${from} → ${to}`, sub:`${fmtQty(inM,from)} ${from} → ${fmtQty(outM,to)} ${to}`, gas:GAS.swap});
+    render();
+    setCallout(`<b>Swap complete.</b> The DEX router took your <span class="hl">${fmtQty(inM,from)} ${from}</span> and sent back <span class="hl">${fmtQty(outM,to)} ${to}</span>. ${from!=='ETH'?'It pulled the '+from+' using your earlier approval ('+'<span class="hl">transferFrom</span>). ':''}Gas was paid in <b>ETH</b>. Token prices and the 0.30% fee are illustrative.`);
+  });
+}
+
+// ---------- modal ----------
+let pendingConfirm=null;
+function openModal(title, lines, warn, onConfirm){
+  document.querySelector('.mhead').innerHTML='🦊 '+title;
+  document.getElementById('modalLines').innerHTML=lines.map(([k,v])=>`<div class="mline"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
+  const w=document.getElementById('modalWarn');
+  if(warn){ w.style.display='block'; w.innerHTML=warn; } else w.style.display='none';
+  pendingConfirm=onConfirm;
+  document.getElementById('overlay').classList.add('show');
+}
+function closeModal(){ document.getElementById('overlay').classList.remove('show'); pendingConfirm=null; }
+
+// ---------- activity ----------
+function renderActivity(){
+  const el=document.getElementById('activity');
+  if(!activity.length){ el.innerHTML='<div class="empty">No transactions yet.</div>'; return; }
+  el.innerHTML='';
+  activity.forEach(a=>{
+    const ic = a.type==='send'?'send':a.type==='approve'?'approve':'swap';
+    const glyph = a.type==='send'?'↑':a.type==='approve'?'✓':'⇄';
+    const d=document.createElement('div'); d.className='actrow';
+    d.innerHTML=`<div class="ic ${ic}">${glyph}</div>
+      <div class="det"><span class="t">${a.title}</span><span class="s">${a.sub}</span></div>
+      <div class="g">gas<br>${fmtQty(a.gas,'ETH')} ETH</div>`;
+    el.appendChild(d);
+  });
+}
+function setCallout(html, warn){ const c=document.getElementById('callout'); c.className='callout'+(warn?' warn':''); c.innerHTML=html; }
+
+// ---------- wiring ----------
+function setTab(t){ activeTab=t;
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===t));
+  ['send','swap','activity'].forEach(p=>document.getElementById('pane-'+p).style.display=(p===t?'block':'none'));
+}
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+document.getElementById('sendAsset').onchange=renderSend;
+document.getElementById('sendAmt').oninput=renderSend;
+document.getElementById('sendMax').onclick=()=>{ const a=document.getElementById('sendAsset').value;
+  const gas=a==='ETH'?GAS.send:GAS.sendToken; let max=a==='ETH'?Math.max(0,bal.ETH-gas):bal[a];
+  document.getElementById('sendAmt').value=fmtQty(max,a); renderSend(); };
+document.getElementById('sendBtn').onclick=reviewSend;
+document.getElementById('swapFrom').onchange=renderSwap;
+document.getElementById('swapTo').onchange=renderSwap;
+document.getElementById('swapAmt').oninput=renderSwap;
+document.getElementById('confirmBtn').onclick=()=>{ if(pendingConfirm){ const f=pendingConfirm; closeModal(); f(); } };
+document.getElementById('rejectBtn').onclick=closeModal;
+document.getElementById('overlay').onclick=e=>{ if(e.target.id==='overlay') closeModal(); };
+document.getElementById('resetBtn').onclick=()=>loadPreset('starter');
+document.querySelectorAll('.chip-btn').forEach(b=>b.onclick=()=>loadPreset(b.dataset.preset));
+
+loadPreset('starter');
+setTab('send');
+</script>
+</body></html>
