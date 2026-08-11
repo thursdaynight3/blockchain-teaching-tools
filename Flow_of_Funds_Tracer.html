@@ -75,6 +75,13 @@ input.amtin{width:118px;}
 input.refin{width:130px;}
 .chip{font-family:var(--mono);font-size:12px;padding:3px 9px;border-radius:99px;white-space:nowrap;}
 .chip.linked{background:var(--victim-s);color:var(--victim);border:1px solid var(--victim);}
+.chip.conv{background:#E8F0FD;color:var(--blue);border:1px solid var(--blue);}
+input.sentin{width:110px;}
+input.convlbl{width:200px;}
+.btn-conv{background:transparent;border:1.5px solid var(--line);color:var(--blue);padding:5px 10px;font-size:12px;}
+.btn-conv:hover{background:#E8F0FD;}
+.btn-conv.on{background:#E8F0FD;border-color:var(--blue);}
+.fm-conv{color:var(--blue);border-color:var(--blue);background:#E8F0FD;}
 .chip.traced{background:var(--victim-s);color:var(--victim);}
 .chip.zero{background:var(--other-s);color:var(--muted);}
 .chip.dev{background:var(--amber-s);color:var(--amber);border:1px solid var(--amber);}
@@ -147,7 +154,8 @@ table.sum td.num{text-align:right;font-weight:600;}
 
 <div class="foot">
 Whole trace computed client-side · no data leaves this page · method choice is an investigative &amp; legal judgment, documented and defended.<br>
-Convention: when a mixed hand-off (part victim, part clean) enters a child wallet, FIFO/LIFO treat it internally as a victim lot followed by a clean lot; the ordering matters only when a withdrawal boundary splits that deposit. Linked deposits default their victim portion to the parent withdrawal's computed allocation (capped at the amount received); edited figures are flagged as analyst overrides and appear as such in the export.
+Convention: when a mixed hand-off (part victim, part clean) enters a child wallet, FIFO/LIFO treat it internally as a victim lot followed by a clean lot; the ordering matters only when a withdrawal boundary splits that deposit. Linked deposits default their victim portion to the parent withdrawal's computed allocation (capped at the amount received); edited figures are flagged as analyst overrides and appear as such in the export.<br>
+Conversions: denominate the entire trace in one unit (USD equivalents recommended). The ⇄ toggle on a linked deposit marks a swap or cross-chain bridge: enter the amount sent and the amount received in that same unit, and the victim portion scales pro-rata — victim in = parent allocation × (received ÷ sent) — so fees and slippage reduce victim and clean funds proportionally. Value both legs at the time of conversion and state that timestamp once; do not re-mark downstream figures as prices move.
 </div>
 
 </div>
@@ -232,7 +240,13 @@ function computeAll(){
       if(e.link){
         const pr=RES[e.link.wid];
         const pT=pr?(pr.perWd[e.link.evId]||0):0;
-        const auto=Math.min(pT, tot);
+        let auto;
+        if(e.conv){
+          const sent=num(e.sentAmt);
+          auto = sent>0 ? Math.min(pT*(tot/sent), tot) : 0;   // pro-rata scale across the conversion
+        } else {
+          auto = Math.min(pT, tot);
+        }
         v=(e.vOverride!=null && e.vOverride!=='')?Math.min(num(e.vOverride),tot):auto;
         e._auto=auto; e._used=v; tracedIn+=v;
       } else {
@@ -256,6 +270,7 @@ function renderFlowMap(){
     d.innerHTML=`<span>${depth?'↳':'◉'}</span><span class="fm-name">SW${w.num}</span>
       ${w.label?`<span class="fm-lbl">· ${esc(w.label)}</span>`:''}
       <span class="fm-amt">${fmt(carried)}</span><span class="fm-lbl">victim in</span>
+      ${w.events.some(e=>e.link&&e.conv)?'<span class="fm-tag fm-conv">⇄ bridged</span>':''}
       ${w.terminal?'<span class="fm-tag fm-term">terminal</span>':''}`;
     d.onclick=()=>document.getElementById('wc'+w.id).scrollIntoView({behavior:'smooth',block:'start'});
     el.appendChild(d);
@@ -338,17 +353,38 @@ function renderEvent(w,e,i){
   const seq=`<span class="seq">${i+1}</span>`;
 
   if(e.kind==='dep' && e.link){
-    // linked deposit from parent withdrawal
+    // linked deposit from parent withdrawal (direct hand-off or cross-asset conversion)
     const dev = e.vOverride!=null && e.vOverride!=='' && Math.abs(num(e.vOverride)-e._auto)>0.005;
-    row.innerHTML=`${seq}<span class="chip linked">linked ← SW${wById(e.link.wid)?.num??'?'}</span>
-      <input type="number" class="amtin" value="${e.amt}" min="0" step="any" title="amount received">
+    const pnum = wById(e.link.wid)?.num ?? '?';
+    const convSeg = e.conv
+      ? `<span class="chip conv">⇄ conversion</span>
+         <input type="number" class="sentin" value="${e.sentAmt??''}" min="0" step="any" title="amount sent from SW${pnum} — same unit as the trace (e.g. USD)">
+         <span class="seq" style="width:auto;flex:none;">→</span>
+         <input type="number" class="amtin" value="${e.amt}" min="0" step="any" title="amount received after conversion">`
+      : `<input type="number" class="amtin" value="${e.amt}" min="0" step="any" title="amount received">`;
+    row.innerHTML=`${seq}<span class="chip linked">linked ← SW${pnum}</span>
+      ${convSeg}
       <span class="chip ${e._used>0?'traced':'zero'}">victim: ${fmt(e._used)}</span>
+      ${e.conv?`<input type="text" class="convlbl" placeholder="bridge / pair (e.g. ThorSwap ETH→USDT)" value="${esc(e.convLabel||'')}">`:''}
       <input type="number" class="vov" placeholder="override" value="${e.vOverride??''}" min="0" step="any" title="override victim portion (blank = computed ${fmt(e._auto)})">
       ${dev?`<span class="chip dev">override · computed ${fmt(e._auto)}</span>`:''}
-      <input type="text" class="refin" placeholder="ref / hash" value="${esc(e.ref)}">`;
+      <input type="text" class="refin" placeholder="ref / hash" value="${esc(e.ref)}">
+      <button class="btn-conv ${e.conv?'on':''}" title="${e.conv?'switch back to a direct same-asset hand-off':'mark this hand-off as a swap / cross-chain bridge and scale the victim portion pro-rata'}">⇄</button>`;
     row.querySelector('.amtin').onchange=ev=>{ e.amt=num(ev.target.value); render(); };
+    const si=row.querySelector('.sentin');
+    if(si) si.onchange=ev=>{ e.sentAmt=ev.target.value===''?null:num(ev.target.value); render(); };
+    const cl=row.querySelector('.convlbl');
+    if(cl) cl.oninput=ev=>{ e.convLabel=ev.target.value; };
     row.querySelector('.vov').onchange=ev=>{ e.vOverride=ev.target.value===''?null:num(ev.target.value); render(); };
     row.querySelector('.refin').oninput=ev=>{ e.ref=ev.target.value; };
+    row.querySelector('.btn-conv').onclick=()=>{
+      e.conv=!e.conv;
+      if(e.conv && (e.sentAmt==null || e.sentAmt==='')){
+        const pev=wById(e.link.wid)?.events.find(x=>x.id===e.link.evId);
+        e.sentAmt=pev?num(pev.amt):null;   // default: full parent withdrawal
+      }
+      render();
+    };
     return row;
   }
 
@@ -401,7 +437,7 @@ function spawnChild(w,e){
     parent:{wid:w.id, evId:e.id},
     events:[
       {id:state.nextE++, kind:'dep', amt:0, tag:'other', ref:'pre-existing balance', link:null, vOverride:null},
-      {id:state.nextE++, kind:'dep', amt:wd, tag:'other', ref:'', link:{wid:w.id, evId:e.id}, vOverride:null},
+      {id:state.nextE++, kind:'dep', amt:wd, tag:'other', ref:'', link:{wid:w.id, evId:e.id}, vOverride:null, conv:false, sentAmt:null, convLabel:''},
     ]};
   state.nextW++;
   state.wallets.push(child);
@@ -490,20 +526,23 @@ function exportCSV(){
   }
   L.push('');
   L.push('# EVENTS');
-  L.push(['wallet','seq','type','amount','tag','victim_portion_in','traced_out_'+state.method,'override_flag','computed_victim_in','ref'].join(','));
+  L.push(['wallet','seq','type','amount','tag','victim_portion_in','traced_out_'+state.method,'flag','computed_victim_in','sent_amount','conversion','ref'].join(','));
   for(const w of state.wallets){
     const r=RES[w.id];
     w.events.forEach((e,i)=>{
       if(e.kind==='dep'){
         const v = e.link ? e._used : (e.tag==='victim'?num(e.amt):0);
         const ovr = e.link && e.vOverride!=null && e.vOverride!=='' && Math.abs(num(e.vOverride)-e._auto)>0.005;
-        L.push([`SW${w.num}`, i+1, e.link?'deposit (linked)':'deposit', num(e.amt).toFixed(2),
-          e.link?`from SW${wById(e.link.wid)?.num??'?'}`:e.tag, v.toFixed(2), '', ovr?'ANALYST OVERRIDE':'',
-          e.link?e._auto.toFixed(2):'', csvCell(e.ref)].join(','));
+        const type = e.link ? (e.conv?'deposit (conversion)':'deposit (linked)') : 'deposit';
+        const flag = ovr ? 'ANALYST OVERRIDE' : (e.link&&e.conv ? 'CONVERSION · victim scaled pro-rata' : '');
+        L.push([`SW${w.num}`, i+1, type, num(e.amt).toFixed(2),
+          e.link?`from SW${wById(e.link.wid)?.num??'?'}`:e.tag, v.toFixed(2), '', flag,
+          e.link?e._auto.toFixed(2):'', e.link&&e.conv?num(e.sentAmt).toFixed(2):'',
+          e.link&&e.conv?csvCell(e.convLabel||''):'', csvCell(e.ref)].join(','));
       } else {
         const c=childOf(w.id,e.id);
         L.push([`SW${w.num}`, i+1, 'withdrawal', num(e.amt).toFixed(2), c?`→ SW${c.num}`:'not followed', '',
-          (r.perWd[e.id]||0).toFixed(2), '', '', csvCell(e.ref)].join(','));
+          (r.perWd[e.id]||0).toFixed(2), '', '', '', '', csvCell(e.ref)].join(','));
       }
     });
   }
