@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flow-of-Funds Tracer v2 · Multi-Asset · Blockchain Teaching Tool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#ECE6D8; --panel:#FFFDF8; --ink:#23282E; --muted:#7A8088;
+  --line:#DDD4C0; --paper2:#E4DCC9;
+  --victim:#7C3AED; --other:#64748B; --green:#15803D; --red:#DC2626; --blue:#2563EB; --amber:#B45309;
+  --victim-s:#F3ECFD; --other-s:#EEF1F5; --green-s:#EAF6EE; --amber-s:#FDF3E3; --blue-s:#E8F0FD;
+  --disp:'Space Grotesk',sans-serif; --mono:'IBM Plex Mono',monospace;
+  --sh:0 2px 4px rgba(60,50,30,.05),0 8px 24px rgba(60,50,30,.08);
+}
+*{box-sizing:border-box;}
+body{margin:0;background:radial-gradient(1200px 600px at 80% -5%, #F2EDE0, transparent 55%),var(--paper);
+  color:var(--ink);font-family:var(--disp);padding:40px 22px 60px;line-height:1.45;}
+.wrap{max-width:1240px;margin:0 auto;}
+header.topbar{position:relative;border-bottom:2px solid var(--ink);padding-bottom:16px;margin-bottom:20px;}
+.eyebrow{display:block;font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);}
+h1{font-size:30px;margin:2px 0 0;font-weight:700;letter-spacing:-.01em;}
+.sub{display:block;font-size:15px;color:var(--muted);margin-top:3px;max-width:820px;}
+button{font-family:var(--disp);cursor:pointer;border:none;border-radius:10px;font-weight:600;}
+.btn-reset{background:transparent;border:1.5px solid var(--line);color:var(--ink);padding:9px 16px;font-size:14px;}
+.btn-reset:hover{background:var(--paper2);}
+.topctl{position:absolute;top:0;right:0;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
+
+.controls{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:18px;}
+.mlabel{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
+.mseg{display:flex;border:1.5px solid var(--ink);border-radius:10px;overflow:hidden;background:var(--panel);}
+.mseg button{border-radius:0;background:transparent;padding:8px 16px;font-size:14px;font-weight:600;color:var(--ink);border-right:1.5px solid var(--line);}
+.mseg button:last-child{border-right:none;}
+.mseg button.on{background:var(--ink);color:var(--panel);}
+.mnote{font-size:13px;color:var(--muted);max-width:460px;}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--sh);padding:18px 20px;margin-bottom:18px;}
+.ph{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+.ph h2{font-size:16px;margin:0;font-weight:700;}
+.ph .hint{font-size:13px;color:var(--muted);}
+
+#flowmap{font-family:var(--mono);font-size:13px;}
+.fm-node{display:flex;align-items:center;gap:8px;padding:3px 0;cursor:pointer;flex-wrap:wrap;}
+.fm-node:hover .fm-name{text-decoration:underline;}
+.fm-name{font-weight:600;}
+.fm-amt{color:var(--victim);font-weight:600;}
+.fm-tag{font-size:11px;padding:1px 8px;border-radius:99px;border:1px solid;}
+.fm-term{color:var(--green);border-color:var(--green);background:var(--green-s);}
+.fm-conv{color:var(--blue);border-color:var(--blue);background:var(--blue-s);}
+.fm-lbl{color:var(--muted);}
+
+/* prices */
+#prices{display:flex;gap:12px;flex-wrap:wrap;font-family:var(--mono);font-size:13px;align-items:center;}
+.prow{display:flex;align-items:center;gap:6px;}
+.prow .pa{font-weight:600;}
+input.pv{width:110px;}
+
+.wcard{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--ink);border-radius:14px;box-shadow:var(--sh);padding:18px 20px;margin-bottom:18px;}
+.wcard.terminal{border-left-color:var(--green);}
+.whead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
+.wnum{font-family:var(--mono);font-weight:600;font-size:15px;letter-spacing:.02em;white-space:nowrap;}
+.whead input.lbl{flex:1 1 180px;min-width:160px;}
+input[type=text],input[type=number],textarea{font-family:var(--mono);font-size:13px;border:1px solid var(--line);border-radius:8px;padding:7px 9px;background:#FFFEFB;color:var(--ink);}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--blue);outline-offset:1px;}
+input.addr{width:100%;margin:6px 0 2px;}
+.lineage{font-family:var(--mono);font-size:12.5px;color:var(--muted);margin:2px 0 10px;}
+.lineage b{color:var(--victim);}
+.termchk{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);white-space:nowrap;cursor:pointer;user-select:none;}
+.btn-x{background:transparent;border:1.5px solid var(--line);color:var(--red);padding:6px 11px;font-size:13px;}
+.btn-x:hover{background:#FBEDED;}
+
+.evt{display:flex;align-items:center;gap:7px;padding:6px 0;border-bottom:1px dashed var(--line);flex-wrap:wrap;}
+.evt:last-of-type{border-bottom:none;}
+.seq{font-family:var(--mono);font-size:12px;color:var(--muted);width:20px;text-align:right;flex:none;}
+select{font-family:var(--disp);font-size:13px;border:1px solid var(--line);border-radius:8px;padding:6px 7px;background:#FFFEFB;}
+select.tagsel.victim{background:var(--victim-s);color:var(--victim);font-weight:600;}
+select.tagsel.other{background:var(--other-s);color:var(--other);}
+input.amtin{width:118px;}
+input.astin{width:70px;text-transform:uppercase;}
+input.refin{width:124px;}
+.chip{font-family:var(--mono);font-size:12px;padding:3px 9px;border-radius:99px;white-space:nowrap;}
+.chip.linked{background:var(--victim-s);color:var(--victim);border:1px solid var(--victim);}
+.chip.swapc{background:var(--blue-s);color:var(--blue);border:1px solid var(--blue);}
+.chip.conv{background:var(--blue-s);color:var(--blue);border:1px solid var(--blue);}
+.chip.ast{background:var(--paper2);color:var(--ink);}
+.chip.traced{background:var(--victim-s);color:var(--victim);}
+.chip.zero{background:var(--other-s);color:var(--muted);}
+.chip.dev{background:var(--amber-s);color:var(--amber);border:1px solid var(--amber);}
+input.vov{width:96px;}
+input.convlbl{width:180px;}
+.del{background:transparent;color:var(--muted);font-size:16px;padding:2px 7px;border-radius:6px;flex:none;}
+.del:hover{background:var(--paper2);color:var(--red);}
+.btn-trace{background:var(--ink);color:var(--panel);padding:5px 12px;font-size:12.5px;}
+.btn-trace:hover{background:#3A414A;}
+.btn-child{background:var(--victim-s);color:var(--victim);border:1px solid var(--victim);padding:5px 12px;font-size:12.5px;}
+.btn-conv{background:transparent;border:1.5px solid var(--line);color:var(--blue);padding:5px 10px;font-size:12px;}
+.btn-conv:hover{background:var(--blue-s);}
+.btn-conv.on{background:var(--blue-s);border-color:var(--blue);}
+.rowadd{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+.btn-add{background:var(--paper2);color:var(--ink);padding:7px 14px;font-size:13px;border:1px solid var(--line);}
+.btn-add:hover{background:var(--line);}
+
+table.pools,table.sum{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:13px;margin-top:12px;}
+table.pools th,table.sum th{text-align:left;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:5px 8px;border-bottom:1.5px solid var(--ink);font-weight:600;}
+table.pools td,table.sum td{padding:6px 8px;border-bottom:1px dashed var(--line);}
+td.num,th.num{text-align:right;}
+td.num{font-weight:600;}
+td.vic{color:var(--victim);}
+td.warn{color:var(--red);}
+textarea.notes{width:100%;margin-top:10px;resize:vertical;min-height:34px;}
+.foot{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:26px;line-height:1.6;}
+@media(max-width:640px){body{padding:24px 12px 48px;} .topctl{position:static;margin-top:10px;}}
+</style></head>
+<body><div class="wrap">
+
+<header class="topbar">
+  <span class="eyebrow">Blockchain Investigation · Teaching Tool</span>
+  <h1>Flow-of-Funds Tracer <span style="color:var(--blue)">v2 · multi-asset</span></h1>
+  <span class="sub">Each wallet keeps a separate pool per asset, in native units. Intra-wallet swaps move the victim allocation between pools; cross-wallet hand-offs and bridges carry it between wallets. One accounting method governs every pool in the trace.</span>
+  <div class="topctl">
+    <button class="btn-reset" id="saveBtn">⬇ Save (JSON)</button>
+    <button class="btn-reset" id="loadBtn">⬆ Load</button>
+    <input type="file" id="loadFile" accept=".json" style="display:none">
+    <button class="btn-reset" id="csvBtn">⬇ Export CSV</button>
+    <button class="btn-reset" id="resetBtn">↺ Reset</button>
+  </div>
+</header>
+
+<div class="controls">
+  <span class="mlabel">Accounting method</span>
+  <div class="mseg" id="mseg">
+    <button data-m="fifo">FIFO</button>
+    <button data-m="lifo">LIFO</button>
+    <button data-m="pifo">PIFO</button>
+    <button data-m="prorata">Pro-rata</button>
+  </div>
+  <span class="mnote">Applied per asset pool across the entire trace; switching recomputes everything live. LIBR is shown per pool as a ceiling only.</span>
+</div>
+
+<div class="panel">
+  <div class="ph"><h2>Flow map</h2><span class="hint">victim allocation carried into each wallet, by asset · click a node to jump to it</span></div>
+  <div id="flowmap"></div>
+</div>
+
+<div id="wallets"></div>
+
+<div class="panel">
+  <div class="ph"><h2>Reporting prices <span style="font-weight:400;color:var(--muted)">· optional USD overlay</span></h2>
+  <span class="hint">display only — never used in the allocation math · state your valuation basis in the notes</span></div>
+  <div id="prices"></div>
+</div>
+
+<div class="panel">
+  <div class="ph"><h2>Terminal points &amp; conservation</h2><span class="hint">where the traced funds stand, per asset</span></div>
+  <div id="terminals"></div>
+  <div id="cons"></div>
+</div>
+
+<div class="foot">
+Whole trace computed client-side · no data leaves this page · method choice is an investigative &amp; legal judgment, documented and defended.<br>
+Ledgers run in native units per asset. A swap or bridge carries the victim allocation across assets by its fraction of the transfer: victim out of the source pool is computed under the selected method, and victim into the destination = amount received × (victim carried ÷ amount sent) — fees and slippage reduce victim and clean funds pro-rata. Mixed hand-offs enter FIFO/LIFO pools as a victim lot followed by a clean lot; the ordering matters only when a withdrawal boundary splits that deposit. Edited victim figures are flagged as analyst overrides and appear as such in the export. The USD price table is a reporting overlay only.<br>
+CSV import format (per wallet): header <b>type,asset,amount,tag,ref,date</b> · type = deposit|withdrawal · tag = victim|other (deposits only; default other) · rows are appended in file order, so ensure the file is chronological · # lines are skipped.
+</div>
+
+</div>
+<script>
+// ==== ENGINE ====
+// A pool is one (wallet, asset) ledger. All amounts in the asset's native units.
+function poolNew(){ return {lots:[], vic:0, oth:0, B:0, T:0, librB:0, librT:0, bal:0, victimIn:0, overdraw:false}; }
+function poolDeposit(p, method, lots){
+  let tot=0, v=0;
+  for(const [a,isV] of lots){ tot+=a; if(isV)v+=a; }
+  p.bal+=tot; p.victimIn+=v; p.librB+=tot; p.librT+=v;
+  if(method==='fifo'||method==='lifo'){ for(const [a,isV] of lots) if(a>0) p.lots.push([a,isV]); }
+  else if(method==='pifo'){ p.vic+=v; p.oth+=tot-v; }
+  else { p.B+=tot; p.T+=v; }
+}
+function poolWithdraw(p, method, amt){
+  p.bal-=amt; if(p.bal<-1e-9)p.overdraw=true;
+  p.librB-=amt; if(p.librB<0)p.librB=0; if(p.librT>p.librB)p.librT=p.librB;
+  let t=0;
+  if(method==='fifo'||method==='lifo'){
+    let w=amt;
+    while(w>1e-12 && p.lots.length){
+      const i = method==='lifo' ? p.lots.length-1 : 0;
+      const [a,isV]=p.lots[i], take=Math.min(a,w);
+      if(isV) t+=take;
+      w-=take;
+      if(a-take<=1e-12) method==='lifo'?p.lots.pop():p.lots.shift(); else p.lots[i][0]=a-take;
+    }
+  } else if(method==='pifo'){
+    t=Math.min(p.vic,amt); p.vic-=t; p.oth-=Math.min(p.oth,amt-t);
+  } else {
+    const eff=Math.min(amt,p.B), f=p.B>1e-12?p.T/p.B:0;
+    t=eff*f; p.T-=t; p.B-=eff;
+  }
+  return t;
+}
+function poolRemain(p, method){
+  if(method==='fifo'||method==='lifo') return p.lots.reduce((s,[a,isV])=>s+(isV?a:0),0);
+  if(method==='pifo') return p.vic;
+  return p.T;
+}
+function num(x){ const n=parseFloat(x); return isFinite(n)&&n>0?n:0; }
+function ovSet(e){ return e.vOverride!=null && e.vOverride!==''; }
+
+// Compute one wallet. parentPerOut: (wid,evId)->traced lookup into already-computed RES.
+function computeWalletV2(w, RES, method){
+  const pools={}, perOut={};
+  const P=a=>{ a=a||'?'; return pools[a]||(pools[a]=poolNew()); };
+  let tracedIn={}; // asset -> victim carried in via linked deposits
+  for(const e of w.events){
+    if(e.kind==='dep'){
+      const tot=num(e.amt); let v=0;
+      if(e.link){
+        const pr=RES[e.link.wid];
+        const pT=pr?(pr.perOut[e.link.evId]||0):0;
+        let auto;
+        if(e.conv){ const sent=num(e.sentAmt); auto = sent>0 ? Math.min(pT*(tot/sent), tot) : 0; }
+        else auto = Math.min(pT, tot);
+        v = ovSet(e) ? Math.min(num(e.vOverride),tot) : auto;
+        e._auto=auto; e._used=v;
+        tracedIn[e.asset]=(tracedIn[e.asset]||0)+v;
+      } else {
+        v = e.tag==='victim'?tot:0;
+      }
+      poolDeposit(P(e.asset), method, [[v,true],[tot-v,false]]);
+    } else if(e.kind==='wd'){
+      perOut[e.id]=poolWithdraw(P(e.asset), method, num(e.amt));
+    } else if(e.kind==='swap'){
+      const sAmt=num(e.srcAmt), dAmt=num(e.dstAmt);
+      const t=poolWithdraw(P(e.srcAsset), method, sAmt);
+      perOut[e.id]=t;
+      const auto = sAmt>1e-12 ? Math.min(dAmt*(t/sAmt), dAmt) : 0;
+      const v = ovSet(e) ? Math.min(num(e.vOverride),dAmt) : auto;
+      e._auto=auto; e._used=v;
+      poolDeposit(P(e.dstAsset), method, [[v,true],[dAmt-v,false]]);
+    }
+  }
+  return {pools, perOut, tracedIn};
+}
+// ==== /ENGINE ====
+
+const MNAME={fifo:'FIFO', lifo:'LIFO', pifo:'PIFO', prorata:'Pro-rata'};
+let state=null, RES={};
+
+function freshState(){
+  return {version:2, method:'prorata', nextW:2, nextE:3, prices:{},
+    wallets:[{id:1, num:1, label:'', address:'', notes:'', terminal:false, parent:null,
+      events:[
+        {id:1, kind:'dep', asset:'ETH', amt:0, tag:'other', ref:'pre-existing balance', date:'', link:null, vOverride:null},
+        {id:2, kind:'dep', asset:'ETH', amt:10, tag:'victim', ref:'Tx0 — from victim', date:'', link:null, vOverride:null},
+      ]}]};
+}
+function wById(id){ return state.wallets.find(w=>w.id===id); }
+function childOf(wid, evId){ return state.wallets.find(w=>w.parent && w.parent.wid===wid && w.parent.evId===evId); }
+function fmt(n){
+  const a=Math.abs(n);
+  const d = a>=1000?2 : a>=1?4 : 6;
+  return (Math.round(n*10**d)/10**d).toLocaleString('en-US',{maximumFractionDigits:d});
+}
+function esc(s){ return String(s??'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function assetsInUse(){
+  const s=new Set();
+  for(const w of state.wallets) for(const e of w.events){
+    if(e.kind==='swap'){ if(e.srcAsset)s.add(e.srcAsset); if(e.dstAsset)s.add(e.dstAsset); }
+    else if(e.asset) s.add(e.asset);
+  }
+  return [...s].sort();
+}
+function usdOf(asset, amt){ const p=parseFloat(state.prices[asset]); return isFinite(p)&&p>0 ? p*amt : null; }
+
+function computeAll(){
+  RES={};
+  for(const w of state.wallets) RES[w.id]=computeWalletV2(w, RES, state.method);
+}
+
+// ---------------- rendering ----------------
+function victimInByAsset(w){
+  const r=RES[w.id], out={};
+  if(w.parent){ for(const a in r.tracedIn) if(r.tracedIn[a]>1e-9) out[a]=r.tracedIn[a]; }
+  else for(const a in r.pools){ const nonLinked=w.events.filter(e=>e.kind==='dep'&&!e.link&&e.tag==='victim'&&e.asset===a).reduce((s,e)=>s+num(e.amt),0); if(nonLinked>1e-9) out[a]=nonLinked; }
+  return out;
+}
+function renderFlowMap(){
+  const el=document.getElementById('flowmap'); el.innerHTML='';
+  const draw=(w,depth)=>{
+    const vin=victimInByAsset(w);
+    const parts=Object.entries(vin).map(([a,v])=>`<span class="fm-amt">${fmt(v)} ${esc(a)}</span>`).join('<span class="fm-lbl"> + </span>')||'<span class="fm-lbl">0</span>';
+    const d=document.createElement('div'); d.className='fm-node'; d.style.paddingLeft=(depth*26)+'px';
+    d.innerHTML=`<span>${depth?'↳':'◉'}</span><span class="fm-name">SW${w.num}</span>
+      ${w.label?`<span class="fm-lbl">· ${esc(w.label)}</span>`:''}
+      ${parts}<span class="fm-lbl">victim in</span>
+      ${w.events.some(e=>(e.link&&e.conv)||e.kind==='swap')?'<span class="fm-tag fm-conv">⇄</span>':''}
+      ${w.terminal?'<span class="fm-tag fm-term">terminal</span>':''}`;
+    d.onclick=()=>document.getElementById('wc'+w.id)?.scrollIntoView({behavior:'smooth',block:'start'});
+    el.appendChild(d);
+    for(const e of w.events) if(e.kind==='wd'){ const c=childOf(w.id,e.id); if(c) draw(c,depth+1); }
+  };
+  for(const w of state.wallets) if(!w.parent) draw(w,0);
+}
+
+function renderWallets(){
+  const box=document.getElementById('wallets'); box.innerHTML='';
+  const dl=`<datalist id="assets">${assetsInUse().map(a=>`<option value="${esc(a)}">`).join('')}</datalist>`;
+  box.insertAdjacentHTML('beforeend', dl);
+  for(const w of state.wallets){
+    const r=RES[w.id];
+    const card=document.createElement('div'); card.className='wcard'+(w.terminal?' terminal':''); card.id='wc'+w.id;
+
+    const head=document.createElement('div'); head.className='whead';
+    head.innerHTML=`<span class="wnum">SUBJECT WALLET ${w.num}</span>
+      <input type="text" class="lbl" placeholder="label / attribution (e.g. TRON consolidation, OKX deposit)" value="${esc(w.label)}">
+      <label class="termchk"><input type="checkbox" ${w.terminal?'checked':''}> terminal point</label>
+      ${w.parent?'<button class="btn-x">✕ remove</button>':''}`;
+    head.querySelector('.lbl').oninput=ev=>{ w.label=ev.target.value; softRender(); };
+    head.querySelector('.termchk input').onchange=ev=>{ w.terminal=ev.target.checked; render(); };
+    const xb=head.querySelector('.btn-x');
+    if(xb) xb.onclick=()=>{ if(confirm(`Remove SW${w.num} and everything traced below it?`)) removeWallet(w.id); };
+    card.appendChild(head);
+
+    const addr=document.createElement('input'); addr.type='text'; addr.className='addr';
+    addr.placeholder='wallet address (paste verbatim — do not retype)'; addr.value=w.address;
+    addr.oninput=ev=>{ w.address=ev.target.value; };
+    card.appendChild(addr);
+
+    if(w.parent){
+      const p=wById(w.parent.wid);
+      const seq=p?p.events.findIndex(e=>e.id===w.parent.evId)+1:0;
+      const parts=Object.entries(r.tracedIn).filter(([,v])=>v>1e-9).map(([a,v])=>`<b>${fmt(v)} ${esc(a)}</b>`).join(' + ')||'<b>0</b>';
+      const lin=document.createElement('div'); lin.className='lineage';
+      lin.innerHTML=`← funded by <b>SW${p?p.num:'?'}</b> · event ${seq||'?'} · victim allocation carried in: ${parts} (${MNAME[state.method]})`;
+      card.appendChild(lin);
+    }
+
+    w.events.forEach((e,i)=>card.appendChild(renderEvent(w,e,i)));
+
+    const ra=document.createElement('div'); ra.className='rowadd';
+    ra.innerHTML=`<button class="btn-add">+ Deposit</button><button class="btn-add">+ Withdrawal</button><button class="btn-add">+ Swap (in-wallet)</button><button class="btn-add">⬆ Import CSV</button>
+      <input type="file" accept=".csv,.txt" style="display:none">`;
+    const [bd,bw,bs,bi]=ra.querySelectorAll('button'); const fi=ra.querySelector('input[type=file]');
+    const lastAsset=()=>{ for(let i=w.events.length-1;i>=0;i--){ const e=w.events[i]; if(e.kind==='swap')return e.dstAsset||'ETH'; if(e.asset)return e.asset; } return 'ETH'; };
+    bd.onclick=()=>{ w.events.push({id:state.nextE++, kind:'dep', asset:lastAsset(), amt:0, tag:'other', ref:'', date:'', link:null, vOverride:null}); render(); };
+    bw.onclick=()=>{ w.events.push({id:state.nextE++, kind:'wd', asset:lastAsset(), amt:0, ref:'', date:''}); render(); };
+    bs.onclick=()=>{ w.events.push({id:state.nextE++, kind:'swap', srcAsset:lastAsset(), srcAmt:0, dstAsset:'USDT', dstAmt:0, ref:'', date:'', convLabel:'', vOverride:null}); render(); };
+    bi.onclick=()=>fi.click();
+    fi.onchange=ev=>{ const f=ev.target.files[0]; if(f) importCSV(w,f); ev.target.value=''; };
+    card.appendChild(ra);
+
+    // per-pool stats
+    const assets=Object.keys(r.pools);
+    if(assets.length){
+      let html=`<table class="pools"><tr><th>asset</th><th class="num">balance</th><th class="num">victim in</th><th class="num">victim remaining · ${MNAME[state.method]}</th><th class="num">LIBR ceiling</th><th class="num">≈ USD (remaining)</th></tr>`;
+      for(const a of assets){
+        const p=r.pools[a], rem=poolRemain(p,state.method), u=usdOf(a,rem);
+        html+=`<tr><td>${esc(a)}</td>
+          <td class="num ${p.overdraw?'warn':''}">${fmt(Math.max(p.bal,0))}${p.overdraw?' ⚠':''}</td>
+          <td class="num vic">${fmt(p.victimIn)}</td>
+          <td class="num vic">${fmt(rem)}</td>
+          <td class="num">${fmt(p.librT)}</td>
+          <td class="num">${u!=null?('$'+fmt(u)):'—'}</td></tr>`;
+      }
+      html+='</table>';
+      if(assets.some(a=>r.pools[a].overdraw)) html+=`<div style="font-family:var(--mono);font-size:12px;color:var(--red);margin-top:6px;">⚠ a withdrawal or swap exceeds the pool balance available at that point — check the sequence</div>`;
+      card.insertAdjacentHTML('beforeend', html);
+    }
+
+    const nt=document.createElement('textarea'); nt.className='notes'; nt.placeholder='notes (attribution basis, chain, valuation basis for conversions, records requested, freeze status…)';
+    nt.value=w.notes; nt.oninput=ev=>{ w.notes=ev.target.value; };
+    card.appendChild(nt);
+    box.appendChild(card);
+  }
+}
+
+function assetInput(cls, val, title){ return `<input type="text" list="assets" class="astin ${cls}" value="${esc(val||'')}" title="${esc(title||'asset')}" placeholder="asset">`; }
+
+function renderEvent(w,e,i){
+  const r=RES[w.id];
+  const row=document.createElement('div'); row.className='evt';
+  const seq=`<span class="seq" title="${esc(e.date||'')}">${i+1}</span>`;
+
+  if(e.kind==='swap'){
+    const dev = ovSet(e) && Math.abs(num(e.vOverride)-e._auto)>1e-9;
+    row.innerHTML=`${seq}<span class="chip swapc">swap ⇄</span>
+      ${assetInput('src',e.srcAsset,'source asset')}
+      <input type="number" class="amtin sa" value="${e.srcAmt}" min="0" step="any" title="amount out of the source pool">
+      <span class="seq" style="width:auto;flex:none;">→</span>
+      ${assetInput('dst',e.dstAsset,'destination asset')}
+      <input type="number" class="amtin da" value="${e.dstAmt}" min="0" step="any" title="amount into the destination pool">
+      <span class="chip ${e._used>0?'traced':'zero'}">victim: ${fmt(e._used)} ${esc(e.dstAsset)}</span>
+      <input type="text" class="convlbl" placeholder="venue / pair (e.g. Uniswap ETH→USDT)" value="${esc(e.convLabel||'')}">
+      <input type="number" class="vov" placeholder="override" value="${e.vOverride??''}" min="0" step="any" title="override victim portion in ${esc(e.dstAsset)} (blank = computed ${fmt(e._auto)})">
+      ${dev?`<span class="chip dev">override · computed ${fmt(e._auto)}</span>`:''}
+      <input type="text" class="refin" placeholder="ref / hash" value="${esc(e.ref)}">
+      <button class="del">×</button>`;
+    row.querySelector('.astin.src').onchange=ev=>{ e.srcAsset=ev.target.value.trim().toUpperCase(); render(); };
+    row.querySelector('.astin.dst').onchange=ev=>{ e.dstAsset=ev.target.value.trim().toUpperCase(); render(); };
+    row.querySelector('.amtin.sa').onchange=ev=>{ e.srcAmt=num(ev.target.value); render(); };
+    row.querySelector('.amtin.da').onchange=ev=>{ e.dstAmt=num(ev.target.value); render(); };
+    row.querySelector('.convlbl').oninput=ev=>{ e.convLabel=ev.target.value; };
+    row.querySelector('.vov').onchange=ev=>{ e.vOverride=ev.target.value===''?null:num(ev.target.value); render(); };
+    row.querySelector('.refin').oninput=ev=>{ e.ref=ev.target.value; };
+    row.querySelector('.del').onclick=()=>{ w.events=w.events.filter(x=>x!==e); render(); };
+    return row;
+  }
+
+  if(e.kind==='dep' && e.link){
+    const dev = ovSet(e) && Math.abs(num(e.vOverride)-e._auto)>1e-9;
+    const pnum = wById(e.link.wid)?.num ?? '?';
+    const pev = wById(e.link.wid)?.events.find(x=>x.id===e.link.evId);
+    const srcAsset = pev?pev.asset:'?';
+    const convSeg = e.conv
+      ? `<span class="chip conv">⇄ bridge/swap</span>
+         <input type="number" class="sentin amtin" value="${e.sentAmt??''}" min="0" step="any" title="amount sent from SW${pnum} in ${esc(srcAsset)}">
+         <span class="chip ast">${esc(srcAsset)}</span>
+         <span class="seq" style="width:auto;flex:none;">→</span>
+         <input type="number" class="amtin" value="${e.amt}" min="0" step="any" title="amount received">
+         ${assetInput('dst',e.asset,'destination asset')}`
+      : `<input type="number" class="amtin" value="${e.amt}" min="0" step="any" title="amount received">
+         <span class="chip ast">${esc(e.asset)}</span>`;
+    row.innerHTML=`${seq}<span class="chip linked">linked ← SW${pnum}</span>
+      ${convSeg}
+      <span class="chip ${e._used>0?'traced':'zero'}">victim: ${fmt(e._used)} ${esc(e.asset)}</span>
+      ${e.conv?`<input type="text" class="convlbl" placeholder="bridge / pair (e.g. ThorSwap ETH→USDT)" value="${esc(e.convLabel||'')}">`:''}
+      <input type="number" class="vov" placeholder="override" value="${e.vOverride??''}" min="0" step="any" title="override victim portion (blank = computed ${fmt(e._auto)})">
+      ${dev?`<span class="chip dev">override · computed ${fmt(e._auto)}</span>`:''}
+      <input type="text" class="refin" placeholder="ref / hash" value="${esc(e.ref)}">
+      <button class="btn-conv ${e.conv?'on':''}" title="${e.conv?'switch back to a direct same-asset hand-off':'mark this hand-off as a swap / cross-chain bridge and scale the victim portion pro-rata'}">⇄</button>`;
+    row.querySelector('.amtin:not(.sentin)').onchange=ev=>{ e.amt=num(ev.target.value); render(); };
+    const si=row.querySelector('.sentin');
+    if(si) si.onchange=ev=>{ e.sentAmt=ev.target.value===''?null:num(ev.target.value); render(); };
+    const da=row.querySelector('.astin.dst');
+    if(da) da.onchange=ev=>{ e.asset=ev.target.value.trim().toUpperCase(); render(); };
+    const cl=row.querySelector('.convlbl');
+    if(cl) cl.oninput=ev=>{ e.convLabel=ev.target.value; };
+    row.querySelector('.vov').onchange=ev=>{ e.vOverride=ev.target.value===''?null:num(ev.target.value); render(); };
+    row.querySelector('.refin').oninput=ev=>{ e.ref=ev.target.value; };
+    row.querySelector('.btn-conv').onclick=()=>{
+      e.conv=!e.conv;
+      if(e.conv){
+        if(e.sentAmt==null||e.sentAmt==='') e.sentAmt=pev?num(pev.amt):null;
+      } else {
+        e.asset=srcAsset;   // direct hand-off means same asset as the parent withdrawal
+      }
+      render();
+    };
+    return row;
+  }
+
+  if(e.kind==='dep'){
+    row.innerHTML=`${seq}
+      <select class="kindsel"><option value="dep" selected>deposit</option><option value="wd">withdrawal</option></select>
+      ${assetInput('one',e.asset)}
+      <input type="number" class="amtin" value="${e.amt}" min="0" step="any">
+      <select class="tagsel ${e.tag}">
+        <option value="victim" ${e.tag==='victim'?'selected':''}>victim (traced)</option>
+        <option value="other" ${e.tag==='other'?'selected':''}>other (clean)</option>
+      </select>
+      <input type="text" class="refin" placeholder="ref / hash" value="${esc(e.ref)}">
+      <button class="del">×</button>`;
+  } else {
+    const traced=r.perOut[e.id]||0;
+    const child=childOf(w.id,e.id);
+    row.innerHTML=`${seq}
+      <select class="kindsel"><option value="dep">deposit</option><option value="wd" selected>withdrawal</option></select>
+      ${assetInput('one',e.asset)}
+      <input type="number" class="amtin" value="${e.amt}" min="0" step="any">
+      <span class="chip ${traced>1e-9?'traced':'zero'}">traced: ${fmt(traced)} ${esc(e.asset)}</span>
+      ${child ? `<button class="btn-child">↳ SW${child.num}</button>` : `<button class="btn-trace">trace →</button>`}
+      <input type="text" class="refin" placeholder="ref / hash" value="${esc(e.ref)}">
+      <button class="del">×</button>`;
+    const bt=row.querySelector('.btn-trace');
+    if(bt) bt.onclick=()=>spawnChild(w,e);
+    const bc=row.querySelector('.btn-child');
+    if(bc) bc.onclick=()=>document.getElementById('wc'+child.id).scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  row.querySelector('.kindsel').onchange=ev=>{
+    const child=e.kind==='wd'?childOf(w.id,e.id):null;
+    if(child && ev.target.value==='dep'){ alert('This withdrawal funds SW'+child.num+'. Remove that wallet first.'); render(); return; }
+    e.kind=ev.target.value; if(e.kind==='dep'&&!e.tag)e.tag='other'; render();
+  };
+  row.querySelector('.astin.one').onchange=ev=>{ e.asset=ev.target.value.trim().toUpperCase(); render(); };
+  row.querySelector('.amtin').onchange=ev=>{ e.amt=num(ev.target.value); render(); };
+  const ts=row.querySelector('select.tagsel'); if(ts) ts.onchange=ev=>{ e.tag=ev.target.value; render(); };
+  const rf=row.querySelector('.refin'); if(rf) rf.oninput=ev=>{ e.ref=ev.target.value; };
+  row.querySelector('.del').onclick=()=>{
+    const child=e.kind==='wd'?childOf(w.id,e.id):null;
+    if(child){ if(!confirm(`This withdrawal funds SW${child.num}. Deleting it removes SW${child.num} and everything below. Continue?`)) return; removeWallet(child.id); }
+    w.events=w.events.filter(x=>x!==e); render();
+  };
+  return row;
+}
+
+function spawnChild(w,e){
+  const child={id:state.nextW, num:0, label:'', address:'', notes:'', terminal:false,
+    parent:{wid:w.id, evId:e.id},
+    events:[
+      {id:state.nextE++, kind:'dep', asset:e.asset, amt:0, tag:'other', ref:'pre-existing balance', date:'', link:null, vOverride:null},
+      {id:state.nextE++, kind:'dep', asset:e.asset, amt:num(e.amt), tag:'other', ref:'', date:'', link:{wid:w.id, evId:e.id}, vOverride:null, conv:false, sentAmt:null, convLabel:''},
+    ]};
+  state.nextW++;
+  state.wallets.push(child);
+  renumber(); render();
+  setTimeout(()=>document.getElementById('wc'+child.id)?.scrollIntoView({behavior:'smooth',block:'start'}),50);
+}
+function removeWallet(id){
+  const doomed=new Set([id]); let grew=true;
+  while(grew){ grew=false; for(const w of state.wallets){ if(w.parent&&doomed.has(w.parent.wid)&&!doomed.has(w.id)){doomed.add(w.id);grew=true;} } }
+  state.wallets=state.wallets.filter(w=>!doomed.has(w.id));
+  renumber(); render();
+}
+function renumber(){
+  let n=1; const seen=new Set();
+  const walk=w=>{ w.num=n++; seen.add(w.id);
+    for(const e of w.events) if(e.kind==='wd'){ const c=childOf(w.id,e.id); if(c) walk(c); } };
+  for(const w of state.wallets) if(!w.parent) walk(w);
+  for(const w of state.wallets) if(!seen.has(w.id)) w.num=n++;
+}
+
+// ---------------- prices ----------------
+function renderPrices(){
+  const el=document.getElementById('prices'); el.innerHTML='';
+  const assets=assetsInUse();
+  if(!assets.length){ el.innerHTML='<span style="color:var(--muted);font-size:13px;">assets appear here as you use them</span>'; return; }
+  for(const a of assets){
+    const d=document.createElement('div'); d.className='prow';
+    d.innerHTML=`<span class="pa">${esc(a)}</span><span style="color:var(--muted)">$</span><input type="number" class="pv" min="0" step="any" placeholder="—" value="${state.prices[a]??''}">`;
+    d.querySelector('.pv').onchange=ev=>{ if(ev.target.value==='')delete state.prices[a]; else state.prices[a]=num(ev.target.value); render(); };
+    el.appendChild(d);
+  }
+}
+
+// ---------------- terminals & conservation ----------------
+function renderTerminals(){
+  const el=document.getElementById('terminals');
+  const terms=state.wallets.filter(w=>w.terminal);
+  const unfollowed=[];
+  for(const w of state.wallets) for(const e of w.events)
+    if(e.kind==='wd' && !childOf(w.id,e.id) && (RES[w.id].perOut[e.id]||0)>1e-9)
+      unfollowed.push({w, e, t:RES[w.id].perOut[e.id]});
+  let html='';
+  if(terms.length){
+    html+=`<table class="sum"><tr><th>wallet</th><th>label</th><th>address</th><th>asset</th><th class="num">victim allocation · ${MNAME[state.method]}</th><th class="num">≈ USD</th></tr>`;
+    for(const w of terms){
+      const vin=victimInByAsset(w); const entries=Object.entries(vin);
+      if(!entries.length){ html+=`<tr><td>SW${w.num}</td><td>${esc(w.label)||'—'}</td><td>${esc(w.address)||'—'}</td><td>—</td><td class="num">0</td><td class="num">—</td></tr>`; continue; }
+      entries.forEach(([a,v],idx)=>{
+        const u=usdOf(a,v);
+        html+=`<tr><td>${idx?'':'SW'+w.num}</td><td>${idx?'':(esc(w.label)||'—')}</td><td>${idx?'':(esc(w.address)||'—')}</td><td>${esc(a)}</td><td class="num vic">${fmt(v)}</td><td class="num">${u!=null?('$'+fmt(u)):'—'}</td></tr>`;
+      });
+    }
+    html+='</table>';
+  } else {
+    html+='<div style="font-size:13px;color:var(--muted)">No wallet is marked as a terminal point yet. Check “terminal point” on exchanges, freeze targets, or other tracing endpoints.</div>';
+  }
+  if(unfollowed.length){
+    html+=`<div style="margin-top:12px;font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;">traced out · destination not followed</div><table class="sum">`;
+    for(const u of unfollowed){
+      const seq=u.w.events.indexOf(u.e)+1;
+      html+=`<tr><td>SW${u.w.num} · event ${seq}</td><td>${esc(u.e.ref)||''}</td><td>${esc(u.e.asset)}</td><td class="num vic">${fmt(u.t)}</td></tr>`;
+    }
+    html+='</table>';
+  }
+  el.innerHTML=html;
+
+  // per-asset conservation
+  const A={}; const get=a=>A[a]||(A[a]={origin:0,convIn:0,convOut:0,remain:0,unf:0});
+  for(const w of state.wallets){
+    const r=RES[w.id];
+    for(const e of w.events){
+      if(e.kind==='dep'&&!e.link&&e.tag==='victim') get(e.asset).origin+=num(e.amt);
+      if(e.kind==='dep'&&e.link&&e.conv) get(e.asset).convIn+=e._used||0;
+      if(e.kind==='swap'){ get(e.srcAsset).convOut+=r.perOut[e.id]||0; get(e.dstAsset).convIn+=e._used||0; }
+      if(e.kind==='wd'){
+        const c=childOf(w.id,e.id);
+        if(!c){ get(e.asset).unf+=r.perOut[e.id]||0; }
+        else { const ld=c.events.find(x=>x.link&&x.link.wid===w.id&&x.link.evId===e.id);
+               if(ld&&ld.conv) get(e.asset).convOut+=r.perOut[e.id]||0; }
+      }
+    }
+    for(const a in r.pools) get(a).remain+=poolRemain(r.pools[a],state.method);
+  }
+  let ch=`<table class="sum" style="margin-top:14px;"><tr><th>asset</th><th class="num">origin victim in</th><th class="num">converted in</th><th class="num">converted out</th><th class="num">remaining in network</th><th class="num">out · unfollowed</th><th class="num">hand-off adjustments</th></tr>`;
+  for(const a of Object.keys(A).sort()){
+    const x=A[a], adj=x.origin+x.convIn-x.convOut-x.remain-x.unf;
+    ch+=`<tr><td>${esc(a)}</td><td class="num vic">${fmt(x.origin)}</td><td class="num">${fmt(x.convIn)}</td><td class="num">${fmt(x.convOut)}</td><td class="num vic">${fmt(x.remain)}</td><td class="num">${fmt(x.unf)}</td><td class="num ${Math.abs(adj)>1e-6?'':'vic'}" style="${Math.abs(adj)>1e-6?'color:var(--amber);':''}">${fmt(adj)}</td></tr>`;
+  }
+  ch+='</table><div style="font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:6px;">per asset, in native units: origin + converted in = remaining + unfollowed + converted out + adjustments · non-zero adjustments reflect analyst overrides at hand-offs</div>';
+  document.getElementById('cons').innerHTML=ch;
+}
+
+// ---------------- CSV import ----------------
+function importCSV(w,file){
+  const rd=new FileReader();
+  rd.onload=()=>{
+    const lines=String(rd.result).split(/\r?\n/);
+    let cols=null, added=0, skipped=0;
+    const parse=line=>{ // simple CSV with quoted-field support
+      const out=[]; let cur='', q=false;
+      for(let i=0;i<line.length;i++){ const c=line[i];
+        if(q){ if(c==='"'){ if(line[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=c; }
+        else{ if(c==='"')q=true; else if(c===','){out.push(cur);cur='';} else cur+=c; } }
+      out.push(cur); return out.map(s=>s.trim());
+    };
+    for(const raw of lines){
+      if(!raw.trim()||raw.trim().startsWith('#')) continue;
+      const cells=parse(raw);
+      if(!cols){
+        const low=cells.map(c=>c.toLowerCase());
+        if(low.some(c=>/type|kind/.test(c)) && low.some(c=>/amount|value/.test(c))){
+          cols={ type: low.findIndex(c=>/type|kind/.test(c)),
+                 asset: low.findIndex(c=>/asset|token|currency/.test(c)),
+                 amount: low.findIndex(c=>/amount|value/.test(c)),
+                 tag: low.findIndex(c=>/^tag$|source/.test(c)),
+                 ref: low.findIndex(c=>/ref|hash|txn|tx/.test(c)),
+                 date: low.findIndex(c=>/date|time/.test(c)) };
+          continue;
+        } else { skipped++; continue; }
+      }
+      const g=k=>cols[k]>=0?(cells[cols[k]]||''):'';
+      const ty=g('type').toLowerCase(), amt=num(g('amount').replace(/,/g,''));
+      if(!amt||!/dep|with|wd/.test(ty)){ skipped++; continue; }
+      const ev={id:state.nextE++, asset:(g('asset')||'ETH').toUpperCase(), amt, ref:g('ref'), date:g('date')};
+      if(/dep/.test(ty)){ ev.kind='dep'; ev.tag=/vic/i.test(g('tag'))?'victim':'other'; ev.link=null; ev.vOverride=null; }
+      else ev.kind='wd';
+      w.events.push(ev); added++;
+    }
+    if(!cols) alert('No header row found. Expected columns: type,asset,amount,tag,ref,date');
+    else alert(`Imported ${added} row${added===1?'':'s'} into SW${w.num}`+(skipped?` · ${skipped} skipped`:'')+'. Rows were appended in file order — verify the sequence is chronological.');
+    render();
+  };
+  rd.readAsText(file);
+}
+
+// ---------------- export ----------------
+function csvCell(s){ s=String(s??''); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }
+function exportCSV(){
+  computeAll();
+  const L=[];
+  L.push('# FLOW-OF-FUNDS TRACE EXPORT · multi-asset v2');
+  L.push('# method: '+MNAME[state.method]+' · generated '+new Date().toISOString()+' · native-unit ledgers · client-side instructional calculation');
+  L.push('');
+  L.push('# REPORTING PRICES (display overlay only)');
+  L.push('asset,usd_price');
+  for(const a of assetsInUse()) L.push([a, state.prices[a]??''].join(','));
+  L.push('');
+  L.push('# WALLET POOLS');
+  L.push(['wallet','label','address','funded_by_wallet','funded_by_event','terminal','asset','victim_in','victim_remaining_'+state.method,'libr_ceiling','ending_balance','notes'].join(','));
+  for(const w of state.wallets){
+    const r=RES[w.id], p2=w.parent?wById(w.parent.wid):null;
+    const pseq=p2?p2.events.findIndex(e=>e.id===w.parent.evId)+1:'';
+    const assets=Object.keys(r.pools);
+    if(!assets.length){ L.push([`SW${w.num}`,csvCell(w.label),csvCell(w.address),p2?`SW${p2.num}`:'',pseq,w.terminal?'yes':'','','','','','',csvCell(w.notes)].join(',')); continue; }
+    assets.forEach((a,idx)=>{
+      const p=r.pools[a];
+      L.push([`SW${w.num}`, csvCell(w.label), csvCell(w.address), p2?`SW${p2.num}`:'', pseq, w.terminal?'yes':'',
+        a, p.victimIn.toFixed(8), poolRemain(p,state.method).toFixed(8), p.librT.toFixed(8), Math.max(p.bal,0).toFixed(8),
+        idx?'':csvCell(w.notes)].join(','));
+    });
+  }
+  L.push('');
+  L.push('# EVENTS');
+  L.push(['wallet','seq','date','type','asset','amount','tag_or_source','victim_portion_in','traced_out_'+state.method,'dst_asset','dst_amount','flag','computed_victim_in','conversion_label','ref'].join(','));
+  for(const w of state.wallets){
+    const r=RES[w.id];
+    w.events.forEach((e,i)=>{
+      if(e.kind==='swap'){
+        const ovr = ovSet(e) && Math.abs(num(e.vOverride)-e._auto)>1e-9;
+        L.push([`SW${w.num}`, i+1, csvCell(e.date||''), 'swap (in-wallet)', e.srcAsset, num(e.srcAmt).toFixed(8), '',
+          (e._used||0).toFixed(8), (r.perOut[e.id]||0).toFixed(8), e.dstAsset, num(e.dstAmt).toFixed(8),
+          ovr?'ANALYST OVERRIDE':'CONVERSION · victim scaled pro-rata', (e._auto||0).toFixed(8), csvCell(e.convLabel||''), csvCell(e.ref)].join(','));
+      } else if(e.kind==='dep'){
+        const v = e.link ? (e._used||0) : (e.tag==='victim'?num(e.amt):0);
+        const ovr = e.link && ovSet(e) && Math.abs(num(e.vOverride)-e._auto)>1e-9;
+        const type = e.link ? (e.conv?'deposit (bridge/conversion)':'deposit (linked)') : 'deposit';
+        const flag = ovr ? 'ANALYST OVERRIDE' : (e.link&&e.conv ? 'CONVERSION · victim scaled pro-rata' : '');
+        L.push([`SW${w.num}`, i+1, csvCell(e.date||''), type, e.asset, num(e.amt).toFixed(8),
+          e.link?`from SW${wById(e.link.wid)?.num??'?'}`+(e.conv?` (sent ${num(e.sentAmt).toFixed(8)})`:''):e.tag,
+          v.toFixed(8), '', '', '', flag, e.link?(e._auto||0).toFixed(8):'', csvCell(e.convLabel||''), csvCell(e.ref)].join(','));
+      } else {
+        const c=childOf(w.id,e.id);
+        L.push([`SW${w.num}`, i+1, csvCell(e.date||''), 'withdrawal', e.asset, num(e.amt).toFixed(8),
+          c?`→ SW${c.num}`:'not followed', '', (r.perOut[e.id]||0).toFixed(8), '', '', '', '', '', csvCell(e.ref)].join(','));
+      }
+    });
+  }
+  download('flow_trace_v2_'+state.method+'_'+Date.now()+'.csv', L.join('\n'), 'text/csv');
+}
+function download(name, text, type){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),500);
+}
+
+// ---------------- save / load / reset ----------------
+document.getElementById('saveBtn').onclick=()=>download('flow_trace_v2_save.json', JSON.stringify(state,null,1), 'application/json');
+document.getElementById('loadBtn').onclick=()=>document.getElementById('loadFile').click();
+document.getElementById('loadFile').onchange=ev=>{
+  const f=ev.target.files[0]; if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{ try{
+      const s=JSON.parse(rd.result);
+      if(!s.wallets||!s.method) throw 0;
+      if(!s.version){ // migrate v1 saves: single implicit unit
+        for(const w of s.wallets) for(const e of w.events){ e.asset='USD'; e.date=e.date||''; }
+        s.version=2; s.prices=s.prices||{};
+      }
+      state=s; renumber(); render();
+    }catch(_){ alert('That file is not a saved trace from this tool.'); } };
+  rd.readAsText(f); ev.target.value='';
+};
+document.getElementById('csvBtn').onclick=exportCSV;
+document.getElementById('resetBtn').onclick=()=>{ if(confirm('Clear the entire trace?')){ state=freshState(); render(); } };
+document.querySelectorAll('#mseg button').forEach(b=>b.onclick=()=>{ state.method=b.dataset.m; render(); });
+
+function render(){ computeAll(); renderWallets(); renderFlowMap(); renderPrices(); renderTerminals(); renderMethodSeg(); }
+function softRender(){ renderFlowMap(); renderTerminals(); }
+function renderMethodSeg(){
+  document.querySelectorAll('#mseg button').forEach(b=>b.classList.toggle('on', b.dataset.m===state.method));
+}
+
+state=freshState(); renumber(); render();
+</script>
+</body></html>
