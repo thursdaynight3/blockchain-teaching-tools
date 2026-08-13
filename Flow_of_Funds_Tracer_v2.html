@@ -92,6 +92,7 @@ input.convlbl{width:180px;}
 .del{background:transparent;color:var(--muted);font-size:16px;padding:2px 7px;border-radius:6px;flex:none;}
 .del:hover{background:var(--paper2);color:var(--red);}
 .btn-trace{background:var(--ink);color:var(--panel);padding:5px 12px;font-size:12.5px;}
+select.tracesel{background:var(--ink);color:var(--panel);border:none;border-radius:10px;padding:5px 8px;font-size:12.5px;font-weight:600;cursor:pointer;max-width:150px;}
 .btn-trace:hover{background:#3A414A;}
 .btn-child{background:var(--victim-s);color:var(--victim);border:1px solid var(--victim);padding:5px 12px;font-size:12.5px;}
 .btn-conv{background:transparent;border:1.5px solid var(--line);color:var(--blue);padding:5px 10px;font-size:12px;}
@@ -138,6 +139,15 @@ textarea.notes{width:100%;margin-top:10px;resize:vertical;min-height:34px;}
   <span class="mnote">Applied per asset pool across the entire trace; switching recomputes everything live. LIBR is shown per pool as a ceiling only.</span>
 </div>
 
+<div class="controls" style="margin-top:-6px;">
+  <span class="mlabel">Mixed hand-offs</span>
+  <div class="mseg" id="mixseg">
+    <button data-x="homog">Proportional</button>
+    <button data-x="sublots">Ordered sub-lots</button>
+  </div>
+  <span class="mnote">FIFO/LIFO only: how a single part-victim transfer is consumed when a withdrawal boundary splits it. Proportional treats one transfer as homogeneous — a single transaction has no internal chronology. Ordered sub-lots stacks the victim portion beneath the clean portion (legacy convention).</span>
+</div>
+
 <div class="panel">
   <div class="ph"><h2>Flow map</h2><span class="hint">victim allocation carried into each wallet, by asset · click a node to jump to it</span></div>
   <div id="flowmap"></div>
@@ -159,7 +169,7 @@ textarea.notes{width:100%;margin-top:10px;resize:vertical;min-height:34px;}
 
 <div class="foot">
 Whole trace computed client-side · no data leaves this page · method choice is an investigative &amp; legal judgment, documented and defended.<br>
-Ledgers run in native units per asset. A swap or bridge carries the victim allocation across assets by its fraction of the transfer: victim out of the source pool is computed under the selected method, and victim into the destination = amount received × (victim carried ÷ amount sent) — fees and slippage reduce victim and clean funds pro-rata. Mixed hand-offs enter FIFO/LIFO pools as a victim lot followed by a clean lot; the ordering matters only when a withdrawal boundary splits that deposit. Edited victim figures are flagged as analyst overrides and appear as such in the export. The USD price table is a reporting overlay only.<br>
+Ledgers run in native units per asset. A swap or bridge carries the victim allocation across assets by its fraction of the transfer: victim out of the source pool is computed under the selected method, and victim into the destination = amount received × (victim carried ÷ amount sent) — fees and slippage reduce victim and clean funds pro-rata. Mixed hand-off treatment (FIFO/LIFO): 'proportional' books each part-victim transfer as one homogeneous lot — a single transaction has no internal chronology, so any amount drawn from it carries its victim fraction. 'Ordered sub-lots' books the victim portion beneath the clean portion; per-withdrawal splits under that convention are convention-dependent whenever a withdrawal boundary falls inside a mixed transfer (aggregates are unaffected). The active treatment is recorded in the export header. Edited victim figures are flagged as analyst overrides and appear as such in the export. The USD price table is a reporting overlay only.<br>
 CSV import format (per wallet): header <b>type,asset,amount,tag,ref,date</b> · type = deposit|withdrawal · tag = victim|other (deposits only; default other) · rows are appended in file order, so ensure the file is chronological · # lines are skipped.
 </div>
 
@@ -167,12 +177,15 @@ CSV import format (per wallet): header <b>type,asset,amount,tag,ref,date</b> · 
 <script>
 // ==== ENGINE ====
 // A pool is one (wallet, asset) ledger. All amounts in the asset's native units.
+// Lots are [amount, victimFraction]. mixedMode 'homog' books a part-victim transfer as one
+// homogeneous lot (no internal ordering); 'sublots' books it as a victim lot then a clean lot.
 function poolNew(){ return {lots:[], vic:0, oth:0, B:0, T:0, librB:0, librT:0, bal:0, victimIn:0, overdraw:false}; }
-function poolDeposit(p, method, lots){
-  let tot=0, v=0;
-  for(const [a,isV] of lots){ tot+=a; if(isV)v+=a; }
+function poolDeposit(p, method, tot, v, mode){
   p.bal+=tot; p.victimIn+=v; p.librB+=tot; p.librT+=v;
-  if(method==='fifo'||method==='lifo'){ for(const [a,isV] of lots) if(a>0) p.lots.push([a,isV]); }
+  if(method==='fifo'||method==='lifo'){
+    if(mode==='sublots'){ if(v>0)p.lots.push([v,1]); if(tot-v>1e-12)p.lots.push([tot-v,0]); }
+    else if(tot>0) p.lots.push([tot, v/tot]);
+  }
   else if(method==='pifo'){ p.vic+=v; p.oth+=tot-v; }
   else { p.B+=tot; p.T+=v; }
 }
@@ -184,8 +197,8 @@ function poolWithdraw(p, method, amt){
     let w=amt;
     while(w>1e-12 && p.lots.length){
       const i = method==='lifo' ? p.lots.length-1 : 0;
-      const [a,isV]=p.lots[i], take=Math.min(a,w);
-      if(isV) t+=take;
+      const [a,frac]=p.lots[i], take=Math.min(a,w);
+      t+=take*frac;
       w-=take;
       if(a-take<=1e-12) method==='lifo'?p.lots.pop():p.lots.shift(); else p.lots[i][0]=a-take;
     }
@@ -198,15 +211,16 @@ function poolWithdraw(p, method, amt){
   return t;
 }
 function poolRemain(p, method){
-  if(method==='fifo'||method==='lifo') return p.lots.reduce((s,[a,isV])=>s+(isV?a:0),0);
+  if(method==='fifo'||method==='lifo') return p.lots.reduce((s,[a,frac])=>s+a*frac,0);
   if(method==='pifo') return p.vic;
   return p.T;
 }
 function num(x){ const n=parseFloat(x); return isFinite(n)&&n>0?n:0; }
 function ovSet(e){ return e.vOverride!=null && e.vOverride!==''; }
 
-// Compute one wallet. parentPerOut: (wid,evId)->traced lookup into already-computed RES.
-function computeWalletV2(w, RES, method){
+// Compute one wallet. RES holds already-computed upstream wallets (topological order).
+function computeWalletV2(w, RES, method, mode){
+  mode=mode||'sublots';
   const pools={}, perOut={};
   const P=a=>{ a=a||'?'; return pools[a]||(pools[a]=poolNew()); };
   let tracedIn={}; // asset -> victim carried in via linked deposits
@@ -225,7 +239,7 @@ function computeWalletV2(w, RES, method){
       } else {
         v = e.tag==='victim'?tot:0;
       }
-      poolDeposit(P(e.asset), method, [[v,true],[tot-v,false]]);
+      poolDeposit(P(e.asset), method, tot, v, mode);
     } else if(e.kind==='wd'){
       perOut[e.id]=poolWithdraw(P(e.asset), method, num(e.amt));
     } else if(e.kind==='swap'){
@@ -235,7 +249,7 @@ function computeWalletV2(w, RES, method){
       const auto = sAmt>1e-12 ? Math.min(dAmt*(t/sAmt), dAmt) : 0;
       const v = ovSet(e) ? Math.min(num(e.vOverride),dAmt) : auto;
       e._auto=auto; e._used=v;
-      poolDeposit(P(e.dstAsset), method, [[v,true],[dAmt-v,false]]);
+      poolDeposit(P(e.dstAsset), method, dAmt, v, mode);
     }
   }
   return {pools, perOut, tracedIn};
@@ -246,7 +260,7 @@ const MNAME={fifo:'FIFO', lifo:'LIFO', pifo:'PIFO', prorata:'Pro-rata'};
 let state=null, RES={};
 
 function freshState(){
-  return {version:2, method:'prorata', nextW:2, nextE:3, prices:{},
+  return {version:2, method:'prorata', mixedMode:'homog', nextW:2, nextE:3, prices:{},
     wallets:[{id:1, num:1, label:'', address:'', notes:'', terminal:false, parent:null,
       events:[
         {id:1, kind:'dep', asset:'ETH', amt:0, tag:'other', ref:'pre-existing balance', date:'', link:null, vOverride:null},
@@ -255,6 +269,34 @@ function freshState(){
 }
 function wById(id){ return state.wallets.find(w=>w.id===id); }
 function childOf(wid, evId){ return state.wallets.find(w=>w.parent && w.parent.wid===wid && w.parent.evId===evId); }
+// destOf: the wallet (spawned OR pre-existing) holding a linked deposit fed by this withdrawal
+function destOf(wid, evId){ return state.wallets.find(w=>w.events.some(e=>e.kind==='dep'&&e.link&&e.link.wid===wid&&e.link.evId===evId)); }
+function reaches(from, to){ // is `to` downstream of `from` via linked deposits?
+  if(from===to) return true;
+  const seen=new Set([from]), q=[from];
+  while(q.length){
+    const cur=q.shift();
+    for(const x of state.wallets){
+      if(seen.has(x.id)) continue;
+      if(x.events.some(e=>e.kind==='dep'&&e.link&&e.link.wid===cur)){
+        if(x.id===to) return true;
+        seen.add(x.id); q.push(x.id);
+      }
+    }
+  }
+  return false;
+}
+function topoOrder(ws){
+  const byId={}; ws.forEach(w=>byId[w.id]=w);
+  const indeg={}, adj={};
+  ws.forEach(w=>{ indeg[w.id]=0; adj[w.id]=[]; });
+  for(const w of ws) for(const e of w.events)
+    if(e.kind==='dep'&&e.link&&byId[e.link.wid]&&e.link.wid!==w.id){ adj[e.link.wid].push(w.id); indeg[w.id]++; }
+  const q=ws.filter(w=>!indeg[w.id]).map(w=>w.id), out=[];
+  while(q.length){ const id=q.shift(); out.push(byId[id]); for(const n of adj[id]) if(--indeg[n]===0) q.push(n); }
+  if(out.length<ws.length) for(const w of ws) if(!out.includes(w)) out.push(w);
+  return out;
+}
 function fmt(n){
   const a=Math.abs(n);
   const d = a>=1000?2 : a>=1?4 : 6;
@@ -273,7 +315,7 @@ function usdOf(asset, amt){ const p=parseFloat(state.prices[asset]); return isFi
 
 function computeAll(){
   RES={};
-  for(const w of state.wallets) RES[w.id]=computeWalletV2(w, RES, state.method);
+  for(const w of topoOrder(state.wallets)) RES[w.id]=computeWalletV2(w, RES, state.method, state.mixedMode||'sublots');
 }
 
 // ---------------- rendering ----------------
@@ -325,12 +367,12 @@ function renderWallets(){
     addr.oninput=ev=>{ w.address=ev.target.value; };
     card.appendChild(addr);
 
-    if(w.parent){
-      const p=wById(w.parent.wid);
-      const seq=p?p.events.findIndex(e=>e.id===w.parent.evId)+1:0;
+    const feeds=w.events.filter(e=>e.kind==='dep'&&e.link);
+    if(feeds.length){
+      const srcs=[...new Set(feeds.map(e=>{const p=wById(e.link.wid);return p?('SW'+p.num):'?';}))].join(', ');
       const parts=Object.entries(r.tracedIn).filter(([,v])=>v>1e-9).map(([a,v])=>`<b>${fmt(v)} ${esc(a)}</b>`).join(' + ')||'<b>0</b>';
       const lin=document.createElement('div'); lin.className='lineage';
-      lin.innerHTML=`← funded by <b>SW${p?p.num:'?'}</b> · event ${seq||'?'} · victim allocation carried in: ${parts} (${MNAME[state.method]})`;
+      lin.innerHTML=`← funded by <b>${srcs}</b> · victim allocation carried in: ${parts} (${MNAME[state.method]})`;
       card.appendChild(lin);
     }
 
@@ -407,8 +449,10 @@ function renderEvent(w,e,i){
 
   if(e.kind==='dep' && e.link){
     const dev = ovSet(e) && Math.abs(num(e.vOverride)-e._auto)>1e-9;
-    const pnum = wById(e.link.wid)?.num ?? '?';
-    const pev = wById(e.link.wid)?.events.find(x=>x.id===e.link.evId);
+    const pw = wById(e.link.wid);
+    const pnum = pw?.num ?? '?';
+    const pev = pw?.events.find(x=>x.id===e.link.evId);
+    const dangling = !pw || !pev;
     const srcAsset = pev?pev.asset:'?';
     const convSeg = e.conv
       ? `<span class="chip conv">⇄ bridge/swap</span>
@@ -420,6 +464,7 @@ function renderEvent(w,e,i){
       : `<input type="number" class="amtin" value="${e.amt}" min="0" step="any" title="amount received">
          <span class="chip ast">${esc(e.asset)}</span>`;
     row.innerHTML=`${seq}<span class="chip linked">linked ← SW${pnum}</span>
+      ${dangling?'<span class="chip dev">⚠ source removed — victim 0 unless overridden</span>':''}
       ${convSeg}
       <span class="chip ${e._used>0?'traced':'zero'}">victim: ${fmt(e._used)} ${esc(e.asset)}</span>
       ${e.conv?`<input type="text" class="convlbl" placeholder="bridge / pair (e.g. ThorSwap ETH→USDT)" value="${esc(e.convLabel||'')}">`:''}
@@ -461,23 +506,30 @@ function renderEvent(w,e,i){
       <button class="del">×</button>`;
   } else {
     const traced=r.perOut[e.id]||0;
-    const child=childOf(w.id,e.id);
+    const dest=destOf(w.id,e.id);
+    const others=state.wallets.filter(x=>x.id!==w.id)
+      .map(x=>`<option value="${x.id}">→ SW${x.num}${x.label?' · '+esc(x.label.slice(0,26)):''}</option>`).join('');
     row.innerHTML=`${seq}
       <select class="kindsel"><option value="dep">deposit</option><option value="wd" selected>withdrawal</option></select>
       ${assetInput('one',e.asset)}
       <input type="number" class="amtin" value="${e.amt}" min="0" step="any">
       <span class="chip ${traced>1e-9?'traced':'zero'}">traced: ${fmt(traced)} ${esc(e.asset)}</span>
-      ${child ? `<button class="btn-child">↳ SW${child.num}</button>` : `<button class="btn-trace">trace →</button>`}
+      ${dest ? `<button class="btn-child">↳ SW${dest.num}</button>`
+             : `<select class="tracesel"><option value="" selected>trace →</option><option value="new">→ new wallet</option>${others}</select>`}
       <input type="text" class="refin" placeholder="ref / hash" value="${esc(e.ref)}">
       <button class="del">×</button>`;
-    const bt=row.querySelector('.btn-trace');
-    if(bt) bt.onclick=()=>spawnChild(w,e);
+    const ts2=row.querySelector('.tracesel');
+    if(ts2) ts2.onchange=ev=>{
+      const v=ev.target.value; ev.target.value='';
+      if(v==='new') spawnChild(w,e);
+      else if(v) linkExisting(w,e,parseInt(v));
+    };
     const bc=row.querySelector('.btn-child');
-    if(bc) bc.onclick=()=>document.getElementById('wc'+child.id).scrollIntoView({behavior:'smooth',block:'start'});
+    if(bc) bc.onclick=()=>document.getElementById('wc'+dest.id)?.scrollIntoView({behavior:'smooth',block:'start'});
   }
   row.querySelector('.kindsel').onchange=ev=>{
-    const child=e.kind==='wd'?childOf(w.id,e.id):null;
-    if(child && ev.target.value==='dep'){ alert('This withdrawal funds SW'+child.num+'. Remove that wallet first.'); render(); return; }
+    const dest=e.kind==='wd'?destOf(w.id,e.id):null;
+    if(dest && ev.target.value==='dep'){ alert('This withdrawal funds a linked deposit in SW'+dest.num+'. Remove that link first.'); render(); return; }
     e.kind=ev.target.value; if(e.kind==='dep'&&!e.tag)e.tag='other'; render();
   };
   row.querySelector('.astin.one').onchange=ev=>{ e.asset=ev.target.value.trim().toUpperCase(); render(); };
@@ -485,13 +537,32 @@ function renderEvent(w,e,i){
   const ts=row.querySelector('select.tagsel'); if(ts) ts.onchange=ev=>{ e.tag=ev.target.value; render(); };
   const rf=row.querySelector('.refin'); if(rf) rf.oninput=ev=>{ e.ref=ev.target.value; };
   row.querySelector('.del').onclick=()=>{
-    const child=e.kind==='wd'?childOf(w.id,e.id):null;
-    if(child){ if(!confirm(`This withdrawal funds SW${child.num}. Deleting it removes SW${child.num} and everything below. Continue?`)) return; removeWallet(child.id); }
+    const dest=e.kind==='wd'?destOf(w.id,e.id):null;
+    if(dest){
+      const spawned = dest.parent && dest.parent.wid===w.id && dest.parent.evId===e.id;
+      if(spawned){
+        if(!confirm(`This withdrawal funds SW${dest.num}. Deleting it removes SW${dest.num} and everything below. Continue?`)) return;
+        removeWallet(dest.id);
+      } else {
+        if(!confirm(`SW${dest.num} holds a linked deposit fed by this withdrawal. Deleting leaves that deposit unlinked (victim portion becomes 0 unless overridden). Continue?`)) return;
+      }
+    }
     w.events=w.events.filter(x=>x!==e); render();
   };
   return row;
 }
 
+function linkExisting(w,e,tid){
+  const t=wById(tid); if(!t){ render(); return; }
+  if(reaches(t.id, w.id)){
+    alert(`That link would create a circular flow — SW${t.num} already feeds SW${w.num} upstream. Pick a different destination.`);
+    render(); return;
+  }
+  t.events.push({id:state.nextE++, kind:'dep', asset:e.asset, amt:num(e.amt), tag:'other', ref:'', date:'',
+    link:{wid:w.id, evId:e.id}, vOverride:null, conv:false, sentAmt:null, convLabel:''});
+  render();
+  setTimeout(()=>document.getElementById('wc'+t.id)?.scrollIntoView({behavior:'smooth',block:'start'}),50);
+}
 function spawnChild(w,e){
   const child={id:state.nextW, num:0, label:'', address:'', notes:'', terminal:false,
     parent:{wid:w.id, evId:e.id},
@@ -537,7 +608,7 @@ function renderTerminals(){
   const terms=state.wallets.filter(w=>w.terminal);
   const unfollowed=[];
   for(const w of state.wallets) for(const e of w.events)
-    if(e.kind==='wd' && !childOf(w.id,e.id) && (RES[w.id].perOut[e.id]||0)>1e-9)
+    if(e.kind==='wd' && !destOf(w.id,e.id) && (RES[w.id].perOut[e.id]||0)>1e-9)
       unfollowed.push({w, e, t:RES[w.id].perOut[e.id]});
   let html='';
   if(terms.length){
@@ -573,7 +644,7 @@ function renderTerminals(){
       if(e.kind==='dep'&&e.link&&e.conv) get(e.asset).convIn+=e._used||0;
       if(e.kind==='swap'){ get(e.srcAsset).convOut+=r.perOut[e.id]||0; get(e.dstAsset).convIn+=e._used||0; }
       if(e.kind==='wd'){
-        const c=childOf(w.id,e.id);
+        const c=destOf(w.id,e.id);
         if(!c){ get(e.asset).unf+=r.perOut[e.id]||0; }
         else { const ld=c.events.find(x=>x.link&&x.link.wid===w.id&&x.link.evId===e.id);
                if(ld&&ld.conv) get(e.asset).convOut+=r.perOut[e.id]||0; }
@@ -639,7 +710,7 @@ function exportCSV(){
   computeAll();
   const L=[];
   L.push('# FLOW-OF-FUNDS TRACE EXPORT · multi-asset v2');
-  L.push('# method: '+MNAME[state.method]+' · generated '+new Date().toISOString()+' · native-unit ledgers · client-side instructional calculation');
+  L.push('# method: '+MNAME[state.method]+' · mixed hand-offs: '+((state.mixedMode||'sublots')==='homog'?'proportional (homogeneous transfers)':'ordered sub-lots')+' · generated '+new Date().toISOString()+' · native-unit ledgers · client-side instructional calculation');
   L.push('');
   L.push('# REPORTING PRICES (display overlay only)');
   L.push('asset,usd_price');
@@ -679,7 +750,7 @@ function exportCSV(){
           e.link?`from SW${wById(e.link.wid)?.num??'?'}`+(e.conv?` (sent ${num(e.sentAmt).toFixed(8)})`:''):e.tag,
           v.toFixed(8), '', '', '', flag, e.link?(e._auto||0).toFixed(8):'', csvCell(e.convLabel||''), csvCell(e.ref)].join(','));
       } else {
-        const c=childOf(w.id,e.id);
+        const c=destOf(w.id,e.id);
         L.push([`SW${w.num}`, i+1, csvCell(e.date||''), 'withdrawal', e.asset, num(e.amt).toFixed(8),
           c?`→ SW${c.num}`:'not followed', '', (r.perOut[e.id]||0).toFixed(8), '', '', '', '', '', csvCell(e.ref)].join(','));
       }
@@ -706,6 +777,7 @@ document.getElementById('loadFile').onchange=ev=>{
         for(const w of s.wallets) for(const e of w.events){ e.asset='USD'; e.date=e.date||''; }
         s.version=2; s.prices=s.prices||{};
       }
+      if(!s.mixedMode) s.mixedMode='sublots'; // preserve figures computed under the legacy convention
       state=s; renumber(); render();
     }catch(_){ alert('That file is not a saved trace from this tool.'); } };
   rd.readAsText(f); ev.target.value='';
@@ -718,7 +790,9 @@ function render(){ computeAll(); renderWallets(); renderFlowMap(); renderPrices(
 function softRender(){ renderFlowMap(); renderTerminals(); }
 function renderMethodSeg(){
   document.querySelectorAll('#mseg button').forEach(b=>b.classList.toggle('on', b.dataset.m===state.method));
+  document.querySelectorAll('#mixseg button').forEach(b=>b.classList.toggle('on', b.dataset.x===(state.mixedMode||'sublots')));
 }
+document.querySelectorAll('#mixseg button').forEach(b=>b.onclick=()=>{ state.mixedMode=b.dataset.x; render(); });
 
 state=freshState(); renumber(); render();
 </script>
